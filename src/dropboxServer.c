@@ -1,4 +1,3 @@
-
 #include "dropboxServer.h"
 
 void sync_server()

@@ -1,18 +1,22 @@
 #ifndef __dropboxServer__
 #define __dropboxServer__
 
-struct	client	{
-						int devices[2];
-						char userid[MAXNAME];
-						struct	file_info[MAXFILES];
-						int logged_in;
-};
+#define MAXNAME 256
+#define MAXFILES 30
+
 
 struct	file_info	{
 						char name[MAXNAME];
 						char extension[MAXNAME];
 						char last_modified[MAXNAME];
 						int size;
+};
+
+struct	client	{
+						int devices[2];
+						char userid[MAXNAME];
+//						struct	file_info;//[MAXFILES];
+						int logged_in;
 };
 
 void sync_server();
