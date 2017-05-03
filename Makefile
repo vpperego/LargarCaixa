@@ -16,11 +16,11 @@ INC_DIR=./include/
 BIN_DIR=./bin/
 SRC_DIR=./src/
 
-all: libcthread.a
+all: libdropbox.a
 
-libdropbox.a: cdata.o cthread.o
-	ar crs libcthread.a $(BIN_DIR)cthread.o $(BIN_DIR)support.o $(BIN_DIR)cdata.o
-	mv libcthread.a $(LIB_DIR)
+libdropbox.a: dropboxClient.o dropboxServer.o
+	ar crs libcthread.a $(BIN_DIR)dropboxClient.o $(BIN_DIR)dropboxServer.o
+	mv libdropbox.a $(LIB_DIR)
 dropboxClient.o:
 	$(CC) -g -c $(SRC_DIR)dropboxClient.c -Iinclude -Wall
 	mv ./dropboxClient.o $(BIN_DIR)
