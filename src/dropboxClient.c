@@ -1,4 +1,5 @@
 #include "dropboxClient.h"
+#include "dropboxUtil.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -43,7 +44,7 @@ int connect_server(char *host, int port)
   {
     printf("Enter the message: ");
     bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
+    strcpy(buffer,NEW_CONNECTION);
 
   /* write in the socket */
   n = write(sockfd, buffer, strlen(buffer));
