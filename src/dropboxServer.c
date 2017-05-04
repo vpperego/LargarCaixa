@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 #include "dropboxServer.h"
 #include "dropboxUtil.h"
+=======
+#include "../include/dropboxServer.h"
+#include "../include/dropboxUtil.h"
+>>>>>>> a6160a71b71368c4414d0b42cab0c1048e2e4758
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
