@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-#include "dropboxServer.h"
-#include "dropboxUtil.h"
-=======
+//#include "dropboxServer.h"
+//#include "dropboxUtil.h"
 #include "../include/dropboxServer.h"
 #include "../include/dropboxUtil.h"
->>>>>>> a6160a71b71368c4414d0b42cab0c1048e2e4758
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,9 +48,10 @@ int start_server()
   return sockfd;
 }
 
-void *client_thread(int client_socket)
+void *client_thread(void * client_socket)
 {
 	printf("ENTRANDO NA THREAD DO CLIENTE");
+	exit(0) ;
 }
 
 void server_listen(int server_socket)
@@ -85,7 +83,7 @@ void server_listen(int server_socket)
     
     if(strcmp(buffer,NEW_CONNECTION))
     {
-      pthread_create(&th,NULL,server_listen,&newsockfd);
+      pthread_create(&th,NULL,client_thread,&newsockfd);
     }else{
 	printf("MESSAGE NOT RECOGNIZED\n");
     }
@@ -107,5 +105,5 @@ void server_listen(int server_socket)
 int main(int argc, char *argv[]) {
 
   int server_socket = start_server();
-
+  server_listen(server_socket);
 }

@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-#include "dropboxClient.h"
-#include "dropboxUtil.h"
-=======
+//#include "dropboxClient.h"
+//#include "dropboxUtil.h"
 #include "../include/dropboxClient.h"
 #include "../include/dropboxUtil.h"
->>>>>>> a6160a71b71368c4414d0b42cab0c1048e2e4758
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
