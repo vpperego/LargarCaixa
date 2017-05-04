@@ -4,7 +4,7 @@
 #define MAXNAME 256
 #define MAXFILES 30
 #define PORT 55000
-#define MAX_SESSIONS 55000
+#define MAX_SESSIONS 2
 
 struct	file_info	{
 						char name[MAXNAME];
