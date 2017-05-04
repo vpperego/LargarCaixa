@@ -1,4 +1,5 @@
-#include "dropboxServer.h"
+#include "../include/dropboxServer.h"
+#include "../include/dropboxUtil.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -4,6 +4,7 @@
 #define MAXNAME 256
 #define MAXFILES 30
 #define PORT 55000
+#define MAX_SESSIONS 55000
 
 struct	file_info	{
 						char name[MAXNAME];
@@ -13,7 +14,7 @@ struct	file_info	{
 };
 
 struct	client	{
-						int devices[2];
+						int devices[MAX_SESSIONS];
 						char userid[MAXNAME];
 						struct	file_info files[MAXFILES];//;
 						int logged_in;
