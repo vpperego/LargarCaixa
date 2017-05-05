@@ -54,36 +54,38 @@ int start_server()
 
 void *client_thread(void * client_socket)
 {
-  //read command from client
-  struct buffer *command = read_data(*((int *)client_socket));
+  while(true){
+    //read command from client
+    struct buffer *command = read_data(*((int *)client_socket));
 
-  //@TODO refactor
-  if(strcmp(command->data, "upload") == 0){
-    //do not change this order!
-    struct buffer *filename = read_data(*((int *)client_socket));
-    struct buffer *data = read_data(*((int *)client_socket));
-    FILE *fp;
-    char file_path[1024];
-    char *bname;
+    //@TODO refactor
+    if(strcmp(command->data, "upload") == 0){
+      //do not change this order!
+      struct buffer *filename = read_data(*((int *)client_socket));
+      struct buffer *data = read_data(*((int *)client_socket));
+      FILE *fp;
+      char file_path[1024];
+      char *bname;
 
-    strcpy(file_path, client.userid);
-    strcat(file_path, "/");
-    bname = basename(filename->data);
-    strcat(file_path, bname);
+      strcpy(file_path, client.userid);
+      strcat(file_path, "/");
+      bname = basename(filename->data);
+      strcat(file_path, bname);
 
-    fp = fopen(file_path, "w+");
-    if(fp == NULL)
-    {
-      printf("ERROR - Failed to open file for writing\n");
-      exit(1);
+      fp = fopen(file_path, "w+");
+      if(fp == NULL)
+      {
+        printf("ERROR - Failed to open file for writing\n");
+        exit(1);
+      }
+
+      if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
+      {
+        printf("ERROR - Failed to write bytes to file\n");
+        exit(1);
+      }
+      fclose(fp);
     }
-
-    if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
-    {
-      printf("ERROR - Failed to write bytes to file\n");
-      exit(1);
-    }
-    fclose(fp);
   }
 
 	return NULL;
