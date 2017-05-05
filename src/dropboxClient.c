@@ -12,6 +12,7 @@
 #include <pwd.h>
 
 char userid[MAXNAME];
+int client_socket;
 
 char *console_str[] = {
   "upload",
@@ -29,12 +30,12 @@ bool (*console_func[]) (char **) = {
   &command_exit
 };
 
+//connect to server socket and send userid
 int connect_server(char *host, int port)
 {
   struct hostent *server;
   struct sockaddr_in serv_addr;
-  int sockfd,n;
-  char buffer[256];
+  int sockfd, n;
   server = gethostbyname(host);
 
   if(server==NULL)
@@ -59,13 +60,42 @@ int connect_server(char *host, int port)
   	printf("ERROR connecting\n");
 		exit(0);
 	}
+  char buffer[256];
+  strcpy(buffer, userid);
 
+  //send size of name followed by name string
+  int datalen = sizeof(userid);
+  int tmp = htonl(datalen);
+  n = write(sockfd, (char*)&tmp, sizeof(tmp));
+  if (n < 0) printf("ERROR writing to socket");
+  n = write(sockfd, userid, datalen);
+
+  if (n < 0){
+    printf("ERROR writing to socket\n");
+    close(sockfd);
+    exit(0);
+  }
+
+  return sockfd;
+}
+
+
+void sync_client()
+{
+
+}
+
+void send_file(char *file)
+{
+  /*
+  int n;
+  char buffer[256];
+  bzero(buffer, 256);
   while(1)
   {
-    bzero(buffer, 256);
     strcpy(buffer, NEW_CONNECTION);
 
-    /* write in the socket */
+    [> write in the socket <]
     n = write(sockfd, buffer, strlen(buffer));
     if (n < 0)
     {
@@ -75,7 +105,7 @@ int connect_server(char *host, int port)
     }
     bzero(buffer,256);
 
-    /* read from the socket */
+    [> read from the socket <]
     n = read(sockfd, buffer, 256);
     if (n < 0)
     {
@@ -84,20 +114,10 @@ int connect_server(char *host, int port)
     }
     if(!strcmp(buffer,SEND_NAME))
     {
-	    write(sockfd,userid,strlen(userid));
+      write(sockfd,userid,strlen(userid));
     }
   }
-  return 0;
-}
-
-void sync_client()
-{
-
-}
-
-void send_file(char *file)
-{
-
+  */
 }
 
 void get_file(char *file)
@@ -185,13 +205,12 @@ void start_client_interface()
 }
 
 int main(int argc, char *argv[]) {
-
   if (argc < CLIENT_ARGUMENTS) {
     fprintf(stderr,"usage %s %s\n", argv[0],ARGUMENTS);
     exit(0);
   }
   strcpy(userid, argv[1]);
-  /*connect_server(argv[2],atoi(argv[3]));*/
+  client_socket = connect_server(argv[2],atoi(argv[3]));
   start_client_interface();
   return 0;
 }
