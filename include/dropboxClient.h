@@ -4,6 +4,7 @@
 #include "dropboxUtil.h"
 #define CLIENT_ARGUMENTS 4
 #define FUNCTION_COUNT 5
+#define MAXNAME 256
 #define ARGUMENTS "Client IP Port"
 
 int connect_server(char *host, int port);

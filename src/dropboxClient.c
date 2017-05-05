@@ -1,15 +1,17 @@
-//#include "dropboxClient.h"
-//#include "dropboxUtil.h"
 #include "../include/dropboxClient.h"
 #include "../include/dropboxUtil.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <pwd.h>
+
+char userid[MAXNAME];
 
 char *console_str[] = {
   "upload",
@@ -43,7 +45,7 @@ int connect_server(char *host, int port)
 
   if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
   {
-      printf("ERROR opening socket\n");
+    printf("ERROR opening socket\n");
     exit(0);
   }
 
@@ -60,25 +62,25 @@ int connect_server(char *host, int port)
 
   while(1)
   {
-    printf("Enter the message: ");
+    /*printf("Enter the message: ");*/
     bzero(buffer, 256);
-    strcpy(buffer,NEW_CONNECTION);
+    strcpy(buffer, NEW_CONNECTION);
 
-  /* write in the socket */
-  n = write(sockfd, buffer, strlen(buffer));
+    /* write in the socket */
+    n = write(sockfd, buffer, strlen(buffer));
     if (n < 0)
-   {
-    printf("ERROR writing to socket\n");
-    close(sockfd);
-    exit(0);
-   }
+    {
+      printf("ERROR writing to socket\n");
+      close(sockfd);
+      exit(0);
+    }
     bzero(buffer,256);
 
-  /* read from the socket */
+    /* read from the socket */
     n = read(sockfd, buffer, 256);
     if (n < 0)
     {
-    printf("ERROR reading from socket\n");
+      printf("ERROR reading from socket\n");
       close(sockfd);
     }
   }
@@ -128,6 +130,15 @@ bool command_list(char **args)
 
 bool command_get_sync_dir(char **args)
 {
+  struct passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+  char sync_dir_path[256];
+
+  strcpy(sync_dir_path, homedir);
+  strcat(sync_dir_path, "/sync_dir_");
+  strcat(sync_dir_path, userid);
+
+  mkdir(sync_dir_path, 0777);
   return false;
 }
 
@@ -177,6 +188,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
   /*connect_server(argv[2],atoi(argv[3]));*/
+  strcpy(userid, argv[1]);
   start_client_interface();
   return 0;
 }
