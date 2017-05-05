@@ -1,5 +1,3 @@
-//#include "dropboxServer.h"
-//#include "dropboxUtil.h"
 #include "../include/dropboxServer.h"
 #include "../include/dropboxUtil.h"
 #include <stdio.h>
@@ -51,7 +49,8 @@ int start_server()
 void *client_thread(void * client_socket)
 {
 	printf("ENTRANDO NA THREAD DO CLIENTE");
-	exit(0) ;
+  return NULL;
+	/*exit(0) ;*/
 }
 
 void server_listen(int server_socket)
@@ -67,7 +66,7 @@ void server_listen(int server_socket)
   clilen = sizeof(struct sockaddr_in);
   if ((newsockfd = accept(server_socket, (struct sockaddr *) &cli_addr, &clilen)) == -1)
     printf("ERROR on accept");
-  while(1)
+  while(true)
   {
     bzero(buffer, 256);
 
@@ -80,16 +79,16 @@ void server_listen(int server_socket)
       close(server_socket);
       exit(0);
     }
-    
-    if(strcmp(buffer,NEW_CONNECTION))
+
+    if(strcmp(buffer, NEW_CONNECTION) == 0)
     {
       pthread_create(&th,NULL,client_thread,&newsockfd);
     }else{
-	printf("MESSAGE NOT RECOGNIZED\n");
+      printf("MESSAGE NOT RECOGNIZED\n");
     }
-   
-    //printf("Client say: %s\n", buffer);
-        fgets(buffer, 256, stdin);
+    printf("Client say: %s\n", buffer);
+
+    fgets(buffer, 256, stdin);
     /* write in the socket */
     n = write(newsockfd, buffer, 256);
     if (n < 0)
