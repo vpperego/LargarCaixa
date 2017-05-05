@@ -62,7 +62,6 @@ int connect_server(char *host, int port)
 
   while(1)
   {
-    /*printf("Enter the message: ");*/
     bzero(buffer, 256);
     strcpy(buffer, NEW_CONNECTION);
 
@@ -82,6 +81,10 @@ int connect_server(char *host, int port)
     {
       printf("ERROR reading from socket\n");
       close(sockfd);
+    }
+    if(!strcmp(buffer,SEND_NAME))
+    {
+	    write(sockfd,userid,strlen(userid));
     }
   }
   return 0;
@@ -187,8 +190,8 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"usage %s %s\n", argv[0],ARGUMENTS);
     exit(0);
   }
-  /*connect_server(argv[2],atoi(argv[3]));*/
   strcpy(userid, argv[1]);
+  /*connect_server(argv[2],atoi(argv[3]));*/
   start_client_interface();
   return 0;
 }

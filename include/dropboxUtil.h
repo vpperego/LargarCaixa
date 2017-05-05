@@ -3,6 +3,7 @@
 
 
 #define NEW_CONNECTION "NEW_CONNECTION"
+#define SEND_NAME "SEND_NAME"
 
 typedef enum { false, true } bool;
 

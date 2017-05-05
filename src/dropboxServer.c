@@ -48,11 +48,57 @@ int start_server()
 
 void *client_thread(void * client_socket)
 {
-	printf("ENTRANDO NA THREAD DO CLIENTE");
-  return NULL;
+//	printf("ENTRANDO NA THREAD DO CLIENTE");
+  
+    char buffer[256];
+/*
+ *Client main loop (read e write)
+ */
+    while(true)
+    {
+ 	if(read((int)&client_socket,buffer,256)>=0)
+	{
+		/*
+		 * TODO-interpretar comando do usuario
+		 */
+		return NULL;
+	}else
+	{
+	
+      	close((int)&client_socket);
+	return NULL;
+	}
+    int n = write((int)&client_socket, buffer, 256);
+    if (n < 0)
+    {
+      printf("ERROR writing to socket");
+      close((int)&client_socket);
+      exit(0);
+    }
+    }
+	return NULL;
 	/*exit(0) ;*/
 }
 
+/*
+ * Verifica se o usuario é valido, analisando se eh cadastrado no server se possui slot de device disponivel.
+*/
+bool is_client_valid(int client_socket)
+{
+    char buffer[256];
+    if( write(client_socket, SEND_NAME, strlen(SEND_NAME)) > 0 )
+    {
+	if(read(client_socket,buffer,256) >0)
+	{
+		//TODO - server recebeu o ID do cliente. Validar a partir daqui se o nome existe e se existe device disponivel.
+		return true;
+   	}
+    } 
+	 return false;   
+}
+/*
+ Realiza o listen do server. 
+*/
 void server_listen(int server_socket)
 {
   int newsockfd,n;
@@ -82,22 +128,12 @@ void server_listen(int server_socket)
 
     if(strcmp(buffer, NEW_CONNECTION) == 0)
     {
-      pthread_create(&th,NULL,client_thread,&newsockfd);
+	if(is_client_valid(newsockfd)==true)
+	    pthread_create(&th,NULL,client_thread,&newsockfd);
     }else{
       printf("MESSAGE NOT RECOGNIZED\n");
     }
-    printf("Client say: %s\n", buffer);
-
-    fgets(buffer, 256, stdin);
     /* write in the socket */
-    n = write(newsockfd, buffer, 256);
-    if (n < 0)
-    {
-      printf("ERROR writing to socket");
-      close(newsockfd);
-      close(server_socket);
-      exit(0);
-    }
   }
 }
 
