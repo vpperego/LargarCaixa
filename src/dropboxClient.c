@@ -30,12 +30,28 @@ bool (*console_func[]) (char **) = {
   &command_exit
 };
 
+//send data with file size
+void send_data(char *data, int sockfd){
+  int n;
+  int datalen = sizeof(data);
+  int tmp = htonl(datalen);
+  n = write(sockfd, (char*)&tmp, sizeof(tmp));
+  if (n < 0) printf("ERROR writing to socket");
+  n = write(sockfd, data, datalen);
+
+  if (n < 0){
+    printf("ERROR writing to socket\n");
+    close(sockfd);
+    exit(0);
+  }
+}
+
 //connect to server socket and send userid
 int connect_server(char *host, int port)
 {
   struct hostent *server;
   struct sockaddr_in serv_addr;
-  int sockfd, n;
+  int sockfd;
   server = gethostbyname(host);
 
   if(server==NULL)
@@ -60,21 +76,12 @@ int connect_server(char *host, int port)
   	printf("ERROR connecting\n");
 		exit(0);
 	}
+
   char buffer[256];
   strcpy(buffer, userid);
 
-  //send size of name followed by name string
-  int datalen = sizeof(userid);
-  int tmp = htonl(datalen);
-  n = write(sockfd, (char*)&tmp, sizeof(tmp));
-  if (n < 0) printf("ERROR writing to socket");
-  n = write(sockfd, userid, datalen);
-
-  if (n < 0){
-    printf("ERROR writing to socket\n");
-    close(sockfd);
-    exit(0);
-  }
+  //send userid to server
+  send_data(userid, sockfd);
 
   return sockfd;
 }
