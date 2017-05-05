@@ -30,22 +30,6 @@ bool (*console_func[]) (char **) = {
   &command_exit
 };
 
-//send data with file size
-void send_data(char *data, int sockfd){
-  int n;
-  int datalen = sizeof(data);
-  int tmp = htonl(datalen);
-  n = write(sockfd, (char*)&tmp, sizeof(tmp));
-  if (n < 0) printf("ERROR writing to socket");
-  n = write(sockfd, data, datalen);
-
-  if (n < 0){
-    printf("ERROR writing to socket\n");
-    close(sockfd);
-    exit(0);
-  }
-}
-
 //connect to server socket and send userid
 int connect_server(char *host, int port)
 {
@@ -81,7 +65,7 @@ int connect_server(char *host, int port)
   strcpy(buffer, userid);
 
   //send userid to server
-  send_data(userid, sockfd);
+  send_data(userid, sockfd, strlen(userid) * sizeof(char));
 
   return sockfd;
 }
@@ -94,37 +78,50 @@ void sync_client()
 
 void send_file(char *file)
 {
-  /*
-  int n;
-  char buffer[256];
-  bzero(buffer, 256);
-  while(1)
-  {
-    strcpy(buffer, NEW_CONNECTION);
+  char *source = NULL;
+  FILE *fp = fopen(file, "r");
+  if (fp != NULL) {
+    /* Go to the end of the file. */
+    if (fseek(fp, 0L, SEEK_END) == 0) {
+        /* Get the size of the file. */
+        long bufsize = ftell(fp);
+        if (bufsize == -1) { /* Error */ }
 
-    [> write in the socket <]
-    n = write(sockfd, buffer, strlen(buffer));
-    if (n < 0)
-    {
-      printf("ERROR writing to socket\n");
-      close(sockfd);
-      exit(0);
-    }
-    bzero(buffer,256);
+        /* Allocate our buffer to that size. */
+        source = malloc(sizeof(char) * (bufsize + 1));
 
-    [> read from the socket <]
-    n = read(sockfd, buffer, 256);
-    if (n < 0)
-    {
-      printf("ERROR reading from socket\n");
-      close(sockfd);
+        /* Go back to the start of the file. */
+        if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */ }
+
+        /* Read the entire file into memory. */
+        size_t newLen = fread(source, sizeof(char), bufsize, fp);
+        if ( ferror( fp ) != 0 ) {
+            fputs("Error reading file", stderr);
+        } else {
+            source[newLen++] = '\0'; /* Just to be safe. */
+        }
+        send_data(source, client_socket, newLen * sizeof(char));
     }
-    if(!strcmp(buffer,SEND_NAME))
-    {
-      write(sockfd,userid,strlen(userid));
-    }
+    fclose(fp);
   }
-  */
+
+
+  free(source);
+}
+
+//send data with file size
+void send_data(char *data, int sockfd, int datalen){
+  int n;
+  int tmp = htonl(datalen);
+  n = write(sockfd, (char*)&tmp, sizeof(tmp));
+  if (n < 0) printf("ERROR writing to socket");
+  n = write(sockfd, data, datalen);
+
+  if (n < 0){
+    printf("ERROR writing to socket\n");
+    close(sockfd);
+    exit(0);
+  }
 }
 
 void get_file(char *file)
@@ -142,6 +139,13 @@ bool command_upload(char **args)
   if (args[1] == NULL) {
       fprintf(stderr, "usage: upload <path/filename.ext>\n");
   }
+  char *command = "upload";
+  //send upload command
+  send_data(command, client_socket, strlen(command) * sizeof(char));
+  //send filename
+  send_data(args[1], client_socket, strlen(args[1]) * sizeof(char));
+  //senda file data
+  send_file(args[1]);
   return false;
 }
 

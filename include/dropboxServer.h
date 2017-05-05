@@ -21,12 +21,17 @@ struct	client	{
 						int logged_in;
 };
 
+struct buffer {
+  char *data;
+  int size;
+};
+
 void sync_server();
 bool is_client_valid(void);
 void *client_thread(void * client_socket);
 void receive_file(char *file);
 void send_file(char *file);
-char * read_data(int newsockfd);
+struct buffer * read_data(int newsockfd);
 void read_user_name(int newsockfd);
 void server_listen(int server_socket);
 #endif

@@ -6,8 +6,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <libgen.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <pwd.h>
+
+//@TODO make multi-client
+struct client client;
 
 void sync_server()
 {
@@ -48,32 +54,37 @@ int start_server()
 
 void *client_thread(void * client_socket)
 {
-  printf("ENTRANDO NA THREAD DO CLIENTE");
-  /*char buffer[256];*/
-/*
- *Client main loop (read e write)
- */
-  //@TODO use read_data to read commands
-  /*
-  while(true)
-  {
-    if(read((int)&client_socket,buffer,256)>=0)
+  struct buffer *command = read_data(*((int *)client_socket));
+  //@TODO refactor
+  if(strcmp(command->data, "upload") == 0){
+    struct buffer *filename = read_data(*((int *)client_socket));
+    struct buffer *data = read_data(*((int *)client_socket));
+    FILE *fp;
+
+    char file_path[1024];
+
+    strcpy(file_path, client.userid);
+    strcat(file_path, "/");
+    char *bname;
+    bname = basename(filename->data);
+    strcat(file_path, bname);
+    printf("name %s\n", file_path);
+    fp = fopen(file_path, "w+");
+    if(fp == NULL)
     {
-      printf("%s", buffer);
-      return NULL;
+      printf("ERROR - Failed to open file for writing\n");
+      exit(1);
     }
 
-    int n = write((int)&client_socket, buffer, 256);
-    if (n < 0)
+    if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
     {
-      printf("ERROR writing to socket");
-      close((int)&client_socket);
-      exit(0);
+      printf("ERROR - Failed to write bytes to file\n");
+      exit(1);
     }
+    fclose(fp);
   }
-    */
+
 	return NULL;
-	/*exit(0) ;*/
 }
 
 /*
@@ -83,32 +94,22 @@ bool is_client_valid(void)
 {
   //@TODO check for client folder
   return true;
-  /*char buffer[256];*/
-  /*if( write(client_socket, SEND_NAME, strlen(SEND_NAME)) > 0 )*/
-  /*{*/
-    /*if(read(client_socket,buffer,256) >0)*/
-    /*{*/
-      /*printf("validou");*/
-      /*//TODO - server recebeu o ID do cliente. Validar a partir daqui se o nome existe e se existe device disponivel.*/
-      /*return true;*/
-    /*}*/
-  /*}*/
-  /*return false;*/
 }
 
 
 //read data from client given the protocol '[int size][data size bytes]'
-char * read_data(int newsockfd){
+struct buffer* read_data(int newsockfd){
+  struct buffer *buffer = malloc(sizeof(struct buffer));
   int buflen, n;
-  char *buffer = malloc(sizeof(char)*1024);
   //read data size
   n = read(newsockfd, (char*)&buflen, sizeof(buflen));
   if (n < 0) printf("ERROR reading from socket");
   buflen = ntohl(buflen);
+  char *buffer_data = malloc(sizeof(char)*buflen);
   int amount_read = 0;
   //keep reading data until size is reached
   while(amount_read < buflen){
-    n = read(newsockfd, (void *)buffer, buflen);
+    n = read(newsockfd, (void *)buffer_data, buflen);
     amount_read += n;
     if (n < 0)
     {
@@ -117,16 +118,20 @@ char * read_data(int newsockfd){
       exit(0);
     }
   }
+
+  buffer->data = buffer_data;
+  buffer->size = sizeof(char)*buflen;
   return buffer;
 
 }
 
 void read_user_name(int newsockfd){
-  char *buffer = read_data(newsockfd);
+  struct buffer *buffer = read_data(newsockfd);
 
-  struct client client;
-  strcpy(client.userid, buffer);
-  printf("%s\n", client.userid);
+  //@TODO insert into list
+  strcpy(client.userid, buffer->data);
+  mkdir(client.userid, 0777);
+  /*printf("%s\n", client.userid);*/
 }
 
 /*
