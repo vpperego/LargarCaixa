@@ -18,4 +18,6 @@ bool command_upload(char **args);
 bool command_list(char **args);
 bool command_get_sync_dir(char **args);
 bool command_exit(char **args);
+void send_data(char *data, int sockfd, int datalen);
+void start_client_interface();
 #endif

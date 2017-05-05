@@ -6,8 +6,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <libgen.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <pwd.h>
+
+//@TODO make multi-client
+struct client client;
 
 void sync_server()
 {
@@ -29,7 +35,7 @@ void send_file(char *file)
 int start_server()
 {
   int sockfd;
-  
+
   struct sockaddr_in serv_addr;
 
   if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -48,92 +54,112 @@ int start_server()
 
 void *client_thread(void * client_socket)
 {
-//	printf("ENTRANDO NA THREAD DO CLIENTE");
-  
-    char buffer[256];
-/*
- *Client main loop (read e write)
- */
-    while(true)
-    {
- 	if(read((int)&client_socket,buffer,256)>=0)
-	{
-		/*
-		 * TODO-interpretar comando do usuario
-		 */
-		return NULL;
-	}else
-	{
-	
-      	close((int)&client_socket);
-	return NULL;
-	}
-    int n = write((int)&client_socket, buffer, 256);
-    if (n < 0)
-    {
-      printf("ERROR writing to socket");
-      close((int)&client_socket);
-      exit(0);
+  while(true){
+    //read command from client
+    struct buffer *command = read_data(*((int *)client_socket));
+
+    //@TODO refactor
+    if(strcmp(command->data, "upload") == 0){
+      //do not change this order!
+      struct buffer *filename = read_data(*((int *)client_socket));
+      struct buffer *data = read_data(*((int *)client_socket));
+      FILE *fp;
+      char file_path[1024];
+      char *bname;
+
+      strcpy(file_path, client.userid);
+      strcat(file_path, "/");
+      bname = basename(filename->data);
+      strcat(file_path, bname);
+
+      fp = fopen(file_path, "w+");
+      if(fp == NULL)
+      {
+        printf("ERROR - Failed to open file for writing\n");
+        exit(1);
+      }
+
+      if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
+      {
+        printf("ERROR - Failed to write bytes to file\n");
+        exit(1);
+      }
+      fclose(fp);
     }
-    }
+  }
+
 	return NULL;
-	/*exit(0) ;*/
 }
 
 /*
  * Verifica se o usuario é valido, analisando se eh cadastrado no server se possui slot de device disponivel.
 */
-bool is_client_valid(int client_socket)
+bool is_client_valid(void)
 {
-    char buffer[256];
-    if( write(client_socket, SEND_NAME, strlen(SEND_NAME)) > 0 )
-    {
-	if(read(client_socket,buffer,256) >0)
-	{
-		//TODO - server recebeu o ID do cliente. Validar a partir daqui se o nome existe e se existe device disponivel.
-		return true;
-   	}
-    } 
-	 return false;   
+  //@TODO check for client folder and number of devices
+  return true;
 }
+
+//read data from client given the protocol '[int size][data size bytes]'
+struct buffer* read_data(int newsockfd){
+  int buflen, n;
+  //read data size
+  n = read(newsockfd, (char*)&buflen, sizeof(buflen));
+  if (n < 0) printf("ERROR reading from socket");
+  buflen = ntohl(buflen);
+  char *buffer_data = malloc(sizeof(char)*buflen);
+  int amount_read = 0;
+  //keep reading data until size is reached
+  while(amount_read < buflen){
+    n = read(newsockfd, (void *)buffer_data, buflen);
+    amount_read += n;
+    if (n < 0)
+    {
+      printf("ERROR reading from socket");
+      close(newsockfd);
+      exit(0);
+    }
+  }
+
+  struct buffer *buffer = malloc(sizeof(struct buffer));
+  buffer->data = buffer_data;
+  buffer->size = sizeof(char)*buflen;
+  return buffer;
+
+}
+
+void read_user_name(int newsockfd){
+  struct buffer *buffer = read_data(newsockfd);
+
+  //@TODO insert into list
+  strcpy(client.userid, buffer->data);
+  //make client folder
+  mkdir(client.userid, 0777);
+}
+
 /*
  Realiza o listen do server. 
 */
 void server_listen(int server_socket)
 {
-  int newsockfd,n;
-  char buffer[256];
+  int newsockfd;
   socklen_t clilen;
   struct sockaddr_in cli_addr;
   pthread_t th;
 
-  listen(server_socket, 5);
+  listen(server_socket, 50);
 
   clilen = sizeof(struct sockaddr_in);
-  if ((newsockfd = accept(server_socket, (struct sockaddr *) &cli_addr, &clilen)) == -1)
-    printf("ERROR on accept");
+  //wait for new connections and create a new thread for each client
   while(true)
   {
-    bzero(buffer, 256);
+    if ((newsockfd = accept(server_socket, (struct sockaddr *) &cli_addr, &clilen)) == -1)
+      printf("ERROR on accept");
 
-    /* read from the socket */
-    n = read(newsockfd, buffer, 256);
-    if (n < 0)
-    {
-      printf("ERROR reading from socket");
-      close(newsockfd);
-      close(server_socket);
-      exit(0);
-    }
+    read_user_name(newsockfd);
 
-    if(strcmp(buffer, NEW_CONNECTION) == 0)
-    {
-	if(is_client_valid(newsockfd)==true)
-	    pthread_create(&th,NULL,client_thread,&newsockfd);
-    }else{
-      printf("MESSAGE NOT RECOGNIZED\n");
-    }
-    /* write in the socket */
+    if(is_client_valid())
+      pthread_create(&th,NULL,client_thread,&newsockfd);
   }
 }
 
