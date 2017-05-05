@@ -54,21 +54,23 @@ int start_server()
 
 void *client_thread(void * client_socket)
 {
+  //read command from client
   struct buffer *command = read_data(*((int *)client_socket));
+
   //@TODO refactor
   if(strcmp(command->data, "upload") == 0){
+    //do not change this order!
     struct buffer *filename = read_data(*((int *)client_socket));
     struct buffer *data = read_data(*((int *)client_socket));
     FILE *fp;
-
     char file_path[1024];
+    char *bname;
 
     strcpy(file_path, client.userid);
     strcat(file_path, "/");
-    char *bname;
     bname = basename(filename->data);
     strcat(file_path, bname);
-    printf("name %s\n", file_path);
+
     fp = fopen(file_path, "w+");
     if(fp == NULL)
     {
@@ -92,14 +94,12 @@ void *client_thread(void * client_socket)
 */
 bool is_client_valid(void)
 {
-  //@TODO check for client folder
+  //@TODO check for client folder and number of devices
   return true;
 }
 
-
 //read data from client given the protocol '[int size][data size bytes]'
 struct buffer* read_data(int newsockfd){
-  struct buffer *buffer = malloc(sizeof(struct buffer));
   int buflen, n;
   //read data size
   n = read(newsockfd, (char*)&buflen, sizeof(buflen));
@@ -119,6 +119,7 @@ struct buffer* read_data(int newsockfd){
     }
   }
 
+  struct buffer *buffer = malloc(sizeof(struct buffer));
   buffer->data = buffer_data;
   buffer->size = sizeof(char)*buflen;
   return buffer;
@@ -130,8 +131,8 @@ void read_user_name(int newsockfd){
 
   //@TODO insert into list
   strcpy(client.userid, buffer->data);
+  //make client folder
   mkdir(client.userid, 0777);
-  /*printf("%s\n", client.userid);*/
 }
 
 /*
@@ -140,7 +141,6 @@ void read_user_name(int newsockfd){
 void server_listen(int server_socket)
 {
   int newsockfd;
-  char buffer[1024];
   socklen_t clilen;
   struct sockaddr_in cli_addr;
   pthread_t th;
@@ -153,7 +153,6 @@ void server_listen(int server_socket)
   {
     if ((newsockfd = accept(server_socket, (struct sockaddr *) &cli_addr, &clilen)) == -1)
       printf("ERROR on accept");
-    bzero(buffer, 1024);
 
     read_user_name(newsockfd);
 

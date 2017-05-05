@@ -220,6 +220,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"usage %s %s\n", argv[0],ARGUMENTS);
     exit(0);
   }
+  //save user name
   strcpy(userid, argv[1]);
   client_socket = connect_server(argv[2],atoi(argv[3]));
   start_client_interface();
