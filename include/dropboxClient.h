@@ -5,6 +5,7 @@
 #define CLIENT_ARGUMENTS 4
 #define FUNCTION_COUNT 5
 #define MAXNAME 256
+#define MAXFILES 256
 #define ARGUMENTS "Client IP Port"
 
 int connect_server(char *host, int port);
@@ -20,4 +21,5 @@ bool command_get_sync_dir(char **args);
 bool command_exit(char **args);
 void send_data(char *data, int sockfd, int datalen);
 void start_client_interface();
+
 #endif
