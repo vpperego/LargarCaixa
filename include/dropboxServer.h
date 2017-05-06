@@ -8,22 +8,22 @@
 #define MAX_SESSIONS 2
 
 struct	file_info	{
-						char name[MAXNAME];
-						char extension[MAXNAME];
-						char last_modified[MAXNAME];
-						int size;
+    char name[MAXNAME];
+    char extension[MAXNAME];
+    char last_modified[MAXNAME];
+    int size;
 };
 
 struct	client	{
-						int devices[MAX_SESSIONS];
-						char userid[MAXNAME];
-						struct	file_info files[MAXFILES];//;
-						int logged_in;
+    int devices[MAX_SESSIONS];
+    char userid[MAXNAME];
+    struct	file_info files[MAXFILES];//;
+    int logged_in;
 };
 
 struct buffer {
-  char *data;
-  int size;
+    char *data;
+    int size;
 };
 
 void sync_server();
