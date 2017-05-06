@@ -30,7 +30,7 @@ void send_file(char *file)
 
 }
 /*
-  inicializa o socket do server.
+  Starts (and returns) the main socket server (i.e., the listen socket)
 */
 int start_server()
 {
@@ -39,7 +39,7 @@ int start_server()
   struct sockaddr_in serv_addr;
 
   if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-        printf("ERROR opening socket");
+        perror ("ERROR opening socket");
 
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(PORT);
@@ -47,7 +47,7 @@ int start_server()
   bzero(&(serv_addr.sin_zero), 8);
 
   if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-    printf("ERROR on binding");
+    perror ("ERROR on binding");
 
   return sockfd;
 }
@@ -75,13 +75,13 @@ void *client_thread(void * client_socket)
       fp = fopen(file_path, "w+");
       if(fp == NULL)
       {
-        printf("ERROR - Failed to open file for writing\n");
+        perror ("ERROR - Failed to open file for writing\n");
         exit(1);
       }
 
       if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
       {
-        printf("ERROR - Failed to write bytes to file\n");
+        perror ("ERROR - Failed to write bytes to file\n");
         exit(1);
       }
       fclose(fp);
@@ -92,7 +92,7 @@ void *client_thread(void * client_socket)
 }
 
 /*
- * Verifica se o usuario é valido, analisando se eh cadastrado no server se possui slot de device disponivel.
+ * See if the user is valid (i.e, is registered and has an available device slot)
 */
 bool is_client_valid(void)
 {
@@ -105,7 +105,7 @@ struct buffer* read_data(int newsockfd){
   int buflen, n;
   //read data size
   n = read(newsockfd, (char*)&buflen, sizeof(buflen));
-  if (n < 0) printf("ERROR reading from socket");
+  if (n < 0) perror ("ERROR reading from socket");
   buflen = ntohl(buflen);
   char *buffer_data = malloc(sizeof(char)*buflen);
   int amount_read = 0;
@@ -115,7 +115,7 @@ struct buffer* read_data(int newsockfd){
     amount_read += n;
     if (n < 0)
     {
-      printf("ERROR reading from socket");
+      perror ("ERROR reading from socket");
       close(newsockfd);
       exit(0);
     }
@@ -138,7 +138,7 @@ void read_user_name(int newsockfd){
 }
 
 /*
- Realiza o listen do server. 
+ Executes the main socket listen. 
 */
 void server_listen(int server_socket)
 {
@@ -154,7 +154,7 @@ void server_listen(int server_socket)
   while(true)
   {
     if ((newsockfd = accept(server_socket, (struct sockaddr *) &cli_addr, &clilen)) == -1)
-      printf("ERROR on accept");
+      perror ("ERROR on accept");
 
     read_user_name(newsockfd);
 

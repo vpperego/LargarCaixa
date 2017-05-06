@@ -40,13 +40,13 @@ int connect_server(char *host, int port)
 
   if(server==NULL)
   {
-    fprintf(stderr,"ERROR, no such host\n");
+    perror("ERROR, no such host\n");
     exit(0);
   }
 
   if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
   {
-    printf("ERROR opening socket\n");
+    perror ("ERROR opening socket\n");
     exit(0);
   }
 
@@ -57,7 +57,7 @@ int connect_server(char *host, int port)
 
   if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
   {
-  	printf("ERROR connecting\n");
+  	perror ("ERROR connecting\n");
 		exit(0);
 	}
 
@@ -114,11 +114,11 @@ void send_data(char *data, int sockfd, int datalen){
   int n;
   int tmp = htonl(datalen);
   n = write(sockfd, (char*)&tmp, sizeof(tmp));
-  if (n < 0) printf("ERROR writing to socket");
+  if (n < 0) perror ("ERROR writing to socket");
   n = write(sockfd, data, datalen);
 
   if (n < 0){
-    printf("ERROR writing to socket\n");
+    perror ("ERROR writing to socket\n");
     close(sockfd);
     exit(0);
   }
@@ -137,7 +137,7 @@ void close_connection()
 bool command_upload(char **args)
 {
   if (args[1] == NULL) {
-      fprintf(stderr, "usage: upload <path/filename.ext>\n");
+      perror( "usage: upload <path/filename.ext>\n");
   }
   char *command = "upload";
   //send upload command
@@ -152,7 +152,7 @@ bool command_upload(char **args)
 bool command_download(char **args)
 {
   if (args[1] == NULL) {
-      fprintf(stderr, "usage: download <filename.ext> \n");
+      perror( "usage: download <filename.ext> \n");
   }
   return false;
 }
@@ -217,7 +217,7 @@ void start_client_interface()
 
 int main(int argc, char *argv[]) {
   if (argc < CLIENT_ARGUMENTS) {
-    fprintf(stderr,"usage %s %s\n", argv[0],ARGUMENTS);
+    printf("usage %s %s\n", argv[0],ARGUMENTS);
     exit(0);
   }
   //save user name
