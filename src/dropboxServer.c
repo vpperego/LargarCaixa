@@ -30,7 +30,7 @@ void send_file(char *file)
     
 }
 /*
- inicializa o socket do server.
+ Starts (and returns) the main socket server (i.e., the listen socket)
  */
 int start_server()
 {
@@ -64,10 +64,14 @@ void *client_thread(void * client_socket)
         struct buffer *command = read_data(*((int *)client_socket));
         
         //@TODO refactor
-        if(strcmp(command->data, "upload") == 0){
+        if(strcmp(command->data, "upload") == 0) {
+            printf("Server recebeu comando UPLOAD\n");
             //do not change this order!
             struct buffer *filename = read_data(*((int *)client_socket));
+            printf("Filename: %s\n", filename->data);
             struct buffer *data = read_data(*((int *)client_socket));
+            printf("Data size: %i\n", data->size);
+            printf("Data: %s\n", data->data);
             FILE *fp;
             char file_path[1024];
             char *bname;
@@ -80,13 +84,13 @@ void *client_thread(void * client_socket)
             fp = fopen(file_path, "w+");
             if(fp == NULL)
             {
-                printf("ERROR - Failed to open file for writing\n");
+                perror ("ERROR - Failed to open file for writing\n");
                 exit(1);
             }
             
             if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
             {
-                printf("ERROR - Failed to write bytes to file\n");
+                perror ("ERROR - Failed to write bytes to file\n");
                 exit(1);
             }
             fclose(fp);
@@ -97,7 +101,7 @@ void *client_thread(void * client_socket)
 }
 
 /*
- * Verifica se o usuario é valido, analisando se eh cadastrado no server se possui slot de device disponivel.
+ * See if the user is valid (i.e, is registered and has an available device slot)
  */
 bool is_client_valid(void)
 {
@@ -106,42 +110,47 @@ bool is_client_valid(void)
 }
 
 //read data from client given the protocol '[int size][data size bytes]'
-struct buffer* read_data(int from_socket) {
-    int buflen, data_size;
-    if( (data_size = read(from_socket, (char*)&buflen, sizeof(buflen))) < 0 )
-        perror("ERROR reading from socket: ");
-
+struct buffer* read_data(int newsockfd){
+    int buflen, n;
+    //read data size
+    n = read(newsockfd, (char*)&buflen, sizeof(buflen));
+    if (n < 0) perror ("ERROR reading from socket");
     buflen = ntohl(buflen);
     char *buffer_data = malloc(sizeof(char)*buflen);
     int amount_read = 0;
     //keep reading data until size is reached
     while(amount_read < buflen){
-        if( (data_size = read(from_socket, (void *)&buffer_data, buflen)) < 0 )
-            perror("ERROR reading from socket: ");
-            close(from_socket);
+        n = read(newsockfd, (void *)buffer_data, buflen);
+        amount_read += n;
+        if (n < 0)
+        {
+            perror ("ERROR reading from socket");
+            close(newsockfd);
             exit(0);
         }
-        amount_read += data_size;
     }
     
     struct buffer *buffer = malloc(sizeof(struct buffer));
     buffer->data = buffer_data;
     buffer->size = sizeof(char)*buflen;
     return buffer;
+    
 }
 
 void read_user_name(int newsockfd){
+    printf("Vai ler username\n");
     struct buffer *buffer = read_data(newsockfd);
-    
+    printf("Username: %s\n", buffer->data);
     //@TODO insert into list
     strcpy(client.userid, buffer->data);
     //make client folder
-    mkdir(client.userid, 0777);
-    
+    if (mkdir(client.userid, 0777) < 0) {
+        perror("ERROR MKDIR: ");
+    }
 }
 
 /*
- Realiza o listen do server.
+ Executes the main socket listen.
  */
 void server_listen(int server_socket)
 {

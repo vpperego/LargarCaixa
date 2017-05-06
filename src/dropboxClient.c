@@ -76,7 +76,11 @@ void sync_client()
 void send_file(char *file)
 {
     char *source = NULL;
-    FILE *fp = fopen(file, "r");
+    FILE *fp = NULL;
+    if ( (fp = fopen(file, "r")) == NULL) {
+        perror("ERROR FOPEN: ");
+        return;
+    }
     if (fp != NULL) {
         /* Go to the end of the file. */
         if (fseek(fp, 0L, SEEK_END) == 0) {
