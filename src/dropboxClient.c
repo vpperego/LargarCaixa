@@ -1,36 +1,13 @@
 #include "../include/dropboxClient.h"
-#include "../include/dropboxUtil.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <pwd.h>
 
 char userid[MAXNAME];
 int client_socket;
 
-char *console_str[] = {
-    "upload",
-    "download",
-    "list",
-    "get_sync_dir",
-    "exit"
-};
-
-bool (*console_func[]) (char **) = {
-    &command_upload,
-    &command_download,
-    &command_list,
-    &command_get_sync_dir,
-    &command_exit
-};
-
-//connect to server socket and send userid
+/* From Assignment Specification
+ * Connects the client to the server.
+ * host - server address
+ * port - server port
+ */
 int connect_server(char *host, int port)
 {
     struct hostent *server;
@@ -67,12 +44,20 @@ int connect_server(char *host, int port)
     return sockfd;
 }
 
-
+/* From Assignment Specification
+ * Synchronizes the directory named "sync_dir_<username>" with the server.
+ * The directory is located in the users home.
+ */
 void sync_client()
 {
     
 }
 
+/* From Assignment Specification
+ * Sends a file with the path "file" to the server.
+ * Must be called in order to upload a file.
+ * file - path/filename.ext
+ */
 void send_file(char *file)
 {
     char *source = NULL;
@@ -110,111 +95,21 @@ void send_file(char *file)
     free(source);
 }
 
-//send data with file size
-void send_data(char *data, int sockfd, int datalen){
-    int n;
-    int tmp = htonl(datalen);
-    if ( (n = write(sockfd, (char*)&tmp, sizeof(tmp))) < 0 ) {
-        perror("ERROR writing to socket: ");
-        close(sockfd);
-        exit(0);
-    }
-    if ( (n = write(sockfd, data, datalen)) < 0 ) {
-        perror("ERROR writing to socket: ");
-        close(sockfd);
-        exit(0);
-    }
-}
-
+/* From Assignment Specification
+ * Fetch a file named "file" from the server.
+ * Must be called in order to download a file.
+ * file - filename.ext
+*/
 void get_file(char *file)
 {
     
 }
 
+/* From Assignment Specification
+ * Closes the connection to the server
+ */
 void close_connection()
 {
-    
-}
-
-bool command_upload(char **args)
-{
-    if (args[1] == NULL) {
-        fprintf(stderr, "usage: upload <path/filename.ext>\n");
-        return false;
-    }
-    char *command = "upload";
-    //send upload command
-    send_data(command, client_socket, strlen(command) * sizeof(char));
-    //send filename
-    send_data(args[1], client_socket, strlen(args[1]) * sizeof(char));
-    //senda file data
-    send_file(args[1]);
-    return false;
-}
-
-bool command_download(char **args)
-{
-    if (args[1] == NULL) {
-        fprintf(stderr, "usage: download <filename.ext> \n");
-    }
-    return false;
-}
-
-bool command_list(char **args)
-{
-    return false;
-}
-
-bool command_get_sync_dir(char **args)
-{
-    struct passwd *pw = getpwuid(getuid());
-    const char *homedir = pw->pw_dir;
-    char sync_dir_path[256];
-    
-    strcpy(sync_dir_path, homedir);
-    strcat(sync_dir_path, "/sync_dir_");
-    strcat(sync_dir_path, userid);
-    
-    mkdir(sync_dir_path, 0777);
-    return false;
-}
-
-bool command_exit(char **args)
-{
-    return true;
-}
-
-bool execute_command(char **args)
-{
-    if (args[0] == NULL) {
-        return false;//no args, continue loop
-    }
-    
-    int i;
-    for (i = 0; i < FUNCTION_COUNT; i++) {
-        if (strcmp(args[0], console_str[i]) == 0) {
-            return (*console_func[i])(args);
-        }
-    }
-    return false;
-}
-
-void start_client_interface()
-{
-    bool finished = false;
-    char *command;
-    char **args;
-    
-    do {
-        printf("> ");
-        command = read_line();
-        args = split_args(command);
-        finished = execute_command(args);
-        
-        free(command);
-        free(args);
-        
-    } while (!finished);
     
 }
 
