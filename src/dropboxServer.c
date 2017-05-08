@@ -46,6 +46,8 @@ int start_server()
   serv_addr.sin_addr.s_addr = INADDR_ANY;
   bzero(&(serv_addr.sin_zero), 8);
 
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0)
+    perror("setsockopt(SO_REUSEADDR) failed");
   if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     perror ("ERROR on binding");
 
@@ -111,9 +113,9 @@ struct buffer* read_data(int newsockfd){
   int amount_read = 0;
   //keep reading data until size is reached
   while(amount_read < buflen){
-    n = read(newsockfd, (void *)buffer_data, buflen);
+    n = read(newsockfd, (void *)buffer_data + amount_read, buflen - amount_read);
     amount_read += n;
-    if (n < 0)
+    if (n < 1)
     {
       perror ("ERROR reading from socket");
       close(newsockfd);
