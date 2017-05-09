@@ -30,37 +30,36 @@ bool execute_command(char **args) {
     return false;
 }
 
-bool command_upload(char **args)
-{
+bool command_upload(char **args) {
     if (args[1] == NULL) {
         fprintf(stderr, "usage: upload <path/filename.ext>\n");
         return false;
     }
-    char *command = "upload";
-    //send upload command
-    send_data(command, client_socket, strlen(command) * sizeof(char));
-    //send filename
-    send_data(args[1], client_socket, strlen(args[1]) * sizeof(char));
-    //senda file data
     send_file(args[1]);
     return false;
 }
 
-bool command_download(char **args)
-{
+bool command_download(char **args) {
     if (args[1] == NULL) {
         fprintf(stderr, "usage: download <filename.ext> \n");
+    }
+    get_file(args[1]);
+    return false;
+}
+
+bool command_list(char **args) {
+    char *command = "list";
+    struct buffer *file_name_buffer = NULL;
+    send_data(command, client_socket, (int)(strlen(command) * sizeof(char)));
+    file_name_buffer = read_data(client_socket);
+    while ( strcmp(file_name_buffer->data, EO_LIST) != 0 ) {
+        printf("%s\n", file_name_buffer->data);
+        file_name_buffer = read_data(client_socket);
     }
     return false;
 }
 
-bool command_list(char **args)
-{
-    return false;
-}
-
-bool command_get_sync_dir(char **args)
-{
+bool command_get_sync_dir(char **args) {
     struct passwd *pw = getpwuid(getuid());
     const char *homedir = pw->pw_dir;
     char sync_dir_path[256];
@@ -73,7 +72,6 @@ bool command_get_sync_dir(char **args)
     return false;
 }
 
-bool command_exit(char **args)
-{
+bool command_exit(char **args) {
     return true;
 }

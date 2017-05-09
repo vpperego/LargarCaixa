@@ -8,8 +8,7 @@ int client_socket;
  * host - server address
  * port - server port
  */
-int connect_server(char *host, int port)
-{
+int connect_server(char *host, int port) {
     struct hostent *server;
     struct sockaddr_in serv_addr;
     int sockfd;
@@ -29,8 +28,7 @@ int connect_server(char *host, int port)
     serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
     
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
-    {
+    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
         perror("ERROR connecting\n");
         exit(0);
     }
@@ -39,7 +37,7 @@ int connect_server(char *host, int port)
     strcpy(buffer, userid);
     
     //send userid to server
-    send_data(userid, sockfd, strlen(userid) * sizeof(char));
+    send_data(userid, sockfd, (int)(strlen(userid) * sizeof(char)));
     
     return sockfd;
 }
@@ -48,8 +46,7 @@ int connect_server(char *host, int port)
  * Synchronizes the directory named "sync_dir_<username>" with the server.
  * The directory is located in the users home.
  */
-void sync_client()
-{
+void sync_client() {
     
 }
 
@@ -58,41 +55,11 @@ void sync_client()
  * Must be called in order to upload a file.
  * file - path/filename.ext
  */
-void send_file(char *file)
-{
-    char *source = NULL;
-    FILE *fp = NULL;
-    if ( (fp = fopen(file, "r")) == NULL) {
-        perror("ERROR FOPEN: ");
-        return;
-    }
-    if (fp != NULL) {
-        /* Go to the end of the file. */
-        if (fseek(fp, 0L, SEEK_END) == 0) {
-            /* Get the size of the file. */
-            long bufsize = ftell(fp);
-            if (bufsize == -1) { /* Error */ }
-            
-            /* Allocate our buffer to that size. */
-            source = malloc(sizeof(char) * (bufsize + 1));
-            
-            /* Go back to the start of the file. */
-            if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */ }
-            
-            /* Read the entire file into memory. */
-            size_t newLen = fread(source, sizeof(char), bufsize, fp);
-            if ( ferror( fp ) != 0 ) {
-                fputs("Error reading file", stderr);
-            } else {
-                source[newLen++] = '\0'; /* Just to be safe. */
-            }
-            send_data(source, client_socket, newLen * sizeof(char));
-        }
-        fclose(fp);
-    }
-    
-    
-    free(source);
+void send_file(char *file) {
+    char *command = "upload";
+    send_data(command, client_socket, (int)(strlen(command) * sizeof(char)) );
+    send_data(file, client_socket, (int)(strlen(file) * sizeof(char)) );
+    send_file_from_path(client_socket, file);
 }
 
 /* From Assignment Specification
@@ -100,16 +67,17 @@ void send_file(char *file)
  * Must be called in order to download a file.
  * file - filename.ext
 */
-void get_file(char *file)
-{
-    
+void get_file(char *file) {
+    char *command = "download";
+    send_data(command, client_socket, (int)(strlen(command) * sizeof(char)) );
+    send_data(file, client_socket, (int)(strlen(file) * sizeof(char)) );
+    receive_file_and_save_to_path(client_socket, file);
 }
 
 /* From Assignment Specification
  * Closes the connection to the server
  */
-void close_connection()
-{
+void close_connection() {
     
 }
 

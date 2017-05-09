@@ -3,6 +3,19 @@
 
 #define MAXNAME 256
 #include "dropboxUtil.h"
+#include "dropboxSharedSocket.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <libgen.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <pwd.h>
+#include <dirent.h>
 #define MAXFILES 30
 #define PORT 55000
 #define MAX_SESSIONS 2
@@ -21,17 +34,11 @@ struct	client	{
     int logged_in;
 };
 
-struct buffer {
-    char *data;
-    int size;
-};
-
 void sync_server();
 bool is_client_valid(void);
 void *client_thread(void * client_socket);
 void receive_file(char *file);
 void send_file(char *file);
-struct buffer * read_data(int newsockfd);
 void read_user_name(int newsockfd);
 void server_listen(int server_socket);
 #endif

@@ -1,99 +1,120 @@
 #include "../include/dropboxServer.h"
-#include "../include/dropboxUtil.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <libgen.h>
-#include <sys/stat.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <pwd.h>
 
 //@TODO make multi-client
 struct client client;
 
+/* From Assignment Specification
+ * Synchronizes the directory named "sync_dir_<username>" with the clients sync_dir.
+ */
 void sync_server()
 {
     
 }
 
+/* From Assignment Specification
+ * Receive a file from the client.
+ * file - path/filename.ext
+ */
 void receive_file(char *file)
 {
     
 }
 
+/* From Assignment Specification
+ * Send a file to the client.
+ * file - filename.txt
+ */
 void send_file(char *file)
 {
     
 }
+
 /*
  Starts (and returns) the main socket server (i.e., the listen socket)
  */
 int start_server()
 {
-    int sockfd;
-    
-    struct sockaddr_in serv_addr;
-    
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        perror("ERROR opening socket: ");
-    
-    int option = 1;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    bzero(&(serv_addr.sin_zero), 8);
-    
-    while(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-    {
-        perror("ERROR BINDING: ");
-        sleep(1);
-    }
-    
-    return sockfd;
+  int sockfd;
+
+  struct sockaddr_in serv_addr;
+
+  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+        perror ("ERROR opening socket");
+
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(PORT);
+  serv_addr.sin_addr.s_addr = INADDR_ANY;
+  bzero(&(serv_addr.sin_zero), 8);
+
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0)
+    perror("setsockopt(SO_REUSEADDR) failed");
+  if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    perror ("ERROR on binding");
+
+  return sockfd;
 }
 
-void *client_thread(void * client_socket)
-{
-    while(true){
+void *client_thread(void * client_socket) {
+    while(true) {
         //read command from client
+        printf("ESPERANDO COMANDO\n");
         struct buffer *command = read_data(*((int *)client_socket));
-        
+        printf("RECEBEU COMANDO\n");
         //@TODO refactor
         if(strcmp(command->data, "upload") == 0) {
             printf("Server recebeu comando UPLOAD\n");
             //do not change this order!
             struct buffer *filename = read_data(*((int *)client_socket));
             printf("Filename: %s\n", filename->data);
-            struct buffer *data = read_data(*((int *)client_socket));
-            printf("Data size: %i\n", data->size);
-            printf("Data: %s\n", data->data);
-            FILE *fp;
+            
             char file_path[1024];
             char *bname;
+            strcpy(file_path, client.userid);
+            strcat(file_path, "/");
+            bname = basename(filename->data);
+            strcat(file_path, bname);
+            //RECEIVE FILE AND SAVE TO PATH
+            receive_file_and_save_to_path(*((int *)client_socket), file_path);
+        }
+        
+        if(strcmp(command->data, "list") == 0) {
+            printf("Server recebeu comando LIST\n");
+            DIR *dir;
+            struct dirent *entry;
+            char dirPath[1024];
+            strcpy(dirPath, client.userid);
             
+            if ( (dir = opendir(dirPath)) == NULL ) {
+                perror("ERROR opendir: ");
+                return NULL;
+            }
+            
+            while ( (entry = readdir(dir)) != NULL ) {
+                if (entry->d_type == DT_REG) {
+                    send_data(entry->d_name, *((int *)client_socket), entry->d_namlen);
+                }
+            }
+            send_data(EO_LIST, *((int *)client_socket), strlen(EO_LIST));
+            
+            if ( closedir(dir) < 0 ) {
+                perror("ERROR closedir: ");
+            }
+        }
+        
+        if(strcmp(command->data, "download") == 0) {
+            printf("Server recebeu comando DOWNLOAD\n");
+            
+            struct buffer *filename = read_data(*((int *)client_socket));
+            printf("Filename: %s\n", filename->data);
+            
+            char file_path[1024];
+            char *bname;
             strcpy(file_path, client.userid);
             strcat(file_path, "/");
             bname = basename(filename->data);
             strcat(file_path, bname);
             
-            fp = fopen(file_path, "w+");
-            if(fp == NULL)
-            {
-                perror ("ERROR - Failed to open file for writing\n");
-                exit(1);
-            }
-            
-            if(fwrite(data->data, sizeof(char), data->size, fp) != data->size)
-            {
-                perror ("ERROR - Failed to write bytes to file\n");
-                exit(1);
-            }
-            fclose(fp);
+            send_file_from_path(*((int *)client_socket), file_path);
         }
     }
     
@@ -107,34 +128,6 @@ bool is_client_valid(void)
 {
     //@TODO check for client folder and number of devices
     return true;
-}
-
-//read data from client given the protocol '[int size][data size bytes]'
-struct buffer* read_data(int newsockfd){
-    int buflen, n;
-    //read data size
-    n = read(newsockfd, (char*)&buflen, sizeof(buflen));
-    if (n < 0) perror ("ERROR reading from socket");
-    buflen = ntohl(buflen);
-    char *buffer_data = malloc(sizeof(char)*buflen);
-    int amount_read = 0;
-    //keep reading data until size is reached
-    while(amount_read < buflen){
-        n = read(newsockfd, (void *)buffer_data, buflen);
-        amount_read += n;
-        if (n < 0)
-        {
-            perror ("ERROR reading from socket");
-            close(newsockfd);
-            exit(0);
-        }
-    }
-    
-    struct buffer *buffer = malloc(sizeof(struct buffer));
-    buffer->data = buffer_data;
-    buffer->size = sizeof(char)*buflen;
-    return buffer;
-    
 }
 
 void read_user_name(int newsockfd){
@@ -177,7 +170,6 @@ void server_listen(int server_socket)
 }
 
 int main(int argc, char *argv[]) {
-    
     int server_socket = start_server();
     server_listen(server_socket);
 }

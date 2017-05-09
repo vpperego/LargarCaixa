@@ -21,6 +21,14 @@
 #include <netdb.h>
 #include <pwd.h>
 
+struct buffer {
+    char *data;
+    int size;
+};
+
+void send_file_from_path(int socket, char *path);
+void receive_file_and_save_to_path(int socket, char *path);
 void send_data(char *data, int sockfd, int datalen);
+struct buffer* read_data(int newsockfd);
 
 #endif /* dropboxSharedSocket_h */
