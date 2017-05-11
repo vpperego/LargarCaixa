@@ -34,11 +34,16 @@ struct client {
   int logged_in;
 };
 
+struct thread_info {
+  int newsockfd;
+  char userid[MAXNAME];
+};
+
 void sync_server();
 bool is_client_valid(void);
-void *client_thread(void *client_socket);
+void *client_thread(void *thread_info);
 void receive_file(char *file);
 void send_file(char *file);
-void read_user_name(int newsockfd);
+char *read_user_name(int newsockfd);
 void server_listen(int server_socket);
 #endif

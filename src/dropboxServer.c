@@ -1,9 +1,6 @@
 #include "../include/dropboxServer.h"
 #include "../include/dropboxServerCommandHandler.h"
 
-//@TODO make multi-client
-struct client client;
-
 /* From Assignment Specification
  * Synchronizes the directory named "sync_dir_<username>" with the clients
  * sync_dir.
@@ -46,19 +43,28 @@ int start_server() {
   return sockfd;
 }
 
-void *client_thread(void *client_socket) {
+void *client_thread(void *thread_info) {
+  struct client *client = malloc(sizeof(struct client));
+  strcpy(client->userid, ((struct thread_info *)thread_info)->userid);
+  client->logged_in = true;
+  // make client folder
+  if (is_client_valid()){
+    if (mkdir(client->userid, 0777) < 0) {
+      perror("ERROR MKDIR: ");
+    }
+  }
   while (true) {
     // read command from client
     printf("ESPERANDO COMANDO\n");
-    struct buffer *command = read_data(*((int *)client_socket));
+    struct buffer *command = read_data(((struct thread_info *)thread_info)->newsockfd);
     printf("RECEBEU COMANDO\n");
     //@TODO refactor
     if (strcmp(command->data, "upload") == 0) {
-      command_upload(*((int *)client_socket), (struct client *)&client);
+      command_upload(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "list") == 0) {
-      command_list(*((int *)client_socket), (struct client *)&client);
+      command_list(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "download") == 0) {
-      command_download(*((int *)client_socket), (struct client *)&client);
+      command_download(((struct thread_info *)thread_info)->newsockfd, client);
     }
   }
 
@@ -74,16 +80,11 @@ bool is_client_valid(void) {
   return true;
 }
 
-void read_user_name(int newsockfd) {
+char *read_user_name(int newsockfd) {
   printf("Vai ler username\n");
   struct buffer *buffer = read_data(newsockfd);
   printf("Username: %s\n", buffer->data);
-  //@TODO insert into list
-  strcpy(client.userid, buffer->data);
-  // make client folder
-  if (mkdir(client.userid, 0777) < 0) {
-    perror("ERROR MKDIR: ");
-  }
+  return buffer->data;
 }
 
 /*
@@ -105,10 +106,14 @@ void server_listen(int server_socket) {
                             &clilen)) == -1)
       perror("ERROR ACCEPT: ");
     printf("\nAceitou conexão de um socket.\n");
-    read_user_name(newsockfd);
+    char *userid = malloc(sizeof(char) * MAXNAME);
+    struct thread_info *thread_info = malloc(sizeof(struct thread_info));
+    userid = read_user_name(newsockfd);
 
-    if (is_client_valid())
-      pthread_create(&th, NULL, client_thread, &newsockfd);
+    thread_info->newsockfd = newsockfd;
+    strcpy(thread_info->userid, userid);
+
+    pthread_create(&th, NULL, client_thread, thread_info);
   }
 }
 
