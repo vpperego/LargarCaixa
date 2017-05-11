@@ -1,19 +1,19 @@
 #ifndef __dropboxClient__
 #define __dropboxClient__
 
-#include "dropboxUtil.h"
 #include "dropboxClientUI.h"
 #include "dropboxSharedSocket.h"
+#include "dropboxUtil.h"
+#include <netdb.h>
+#include <netinet/in.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <pwd.h>
+#include <unistd.h>
 
 #define CLIENT_ARGUMENTS 4
 #define MAXNAME 256

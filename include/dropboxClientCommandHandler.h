@@ -1,19 +1,19 @@
 #ifndef dropboxClientCommandHandler_h
 #define dropboxClientCommandHandler_h
 
-#include "dropboxUtil.h"
 #include "dropboxClient.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include "dropboxUtil.h"
 #include <libgen.h>
-#include <sys/stat.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define FUNCTION_COUNT 5
 
