@@ -1,4 +1,5 @@
 #include "../include/dropboxServer.h"
+#include "../include/dropboxServerCommandHandler.h"
 
 //@TODO make multi-client
 struct client client;
@@ -53,59 +54,11 @@ void *client_thread(void *client_socket) {
     printf("RECEBEU COMANDO\n");
     //@TODO refactor
     if (strcmp(command->data, "upload") == 0) {
-      printf("Server recebeu comando UPLOAD\n");
-      // do not change this order!
-      struct buffer *filename = read_data(*((int *)client_socket));
-      printf("Filename: %s\n", filename->data);
-
-      char file_path[1024];
-      char *bname;
-      strcpy(file_path, client.userid);
-      strcat(file_path, "/");
-      bname = basename(filename->data);
-      strcat(file_path, bname);
-      // RECEIVE FILE AND SAVE TO PATH
-      receive_file_and_save_to_path(*((int *)client_socket), file_path);
-    }
-
-    if (strcmp(command->data, "list") == 0) {
-      printf("Server recebeu comando LIST\n");
-      DIR *dir;
-      struct dirent *entry;
-      char dirPath[1024];
-      strcpy(dirPath, client.userid);
-
-      if ((dir = opendir(dirPath)) == NULL) {
-        perror("ERROR opendir: ");
-        return NULL;
-      }
-
-      while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) {
-          send_data(entry->d_name, *((int *)client_socket), entry->d_namlen);
-        }
-      }
-      send_data(EO_LIST, *((int *)client_socket), strlen(EO_LIST));
-
-      if (closedir(dir) < 0) {
-        perror("ERROR closedir: ");
-      }
-    }
-
-    if (strcmp(command->data, "download") == 0) {
-      printf("Server recebeu comando DOWNLOAD\n");
-
-      struct buffer *filename = read_data(*((int *)client_socket));
-      printf("Filename: %s\n", filename->data);
-
-      char file_path[1024];
-      char *bname;
-      strcpy(file_path, client.userid);
-      strcat(file_path, "/");
-      bname = basename(filename->data);
-      strcat(file_path, bname);
-
-      send_file_from_path(*((int *)client_socket), file_path);
+      command_upload(*((int *)client_socket), (struct client *)&client);
+    } else if (strcmp(command->data, "list") == 0) {
+      command_list(*((int *)client_socket), (struct client *)&client);
+    } else if (strcmp(command->data, "download") == 0) {
+      command_download(*((int *)client_socket), (struct client *)&client);
     }
   }
 

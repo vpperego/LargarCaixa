@@ -38,8 +38,8 @@ void send_file_from_path(int socket, char *path) {
 
 void receive_file_and_save_to_path(int socket, char *path) {
   struct buffer *data = read_data(socket);
-  printf("Data size: %zi\n", data->size);
-  printf("Data: %s\n", data->data);
+  /*printf("Data size: %zi\n", data->size);*/
+  /*printf("Data: %s\n", data->data);*/
   FILE *fp;
 
   fp = fopen(path, "w+");
