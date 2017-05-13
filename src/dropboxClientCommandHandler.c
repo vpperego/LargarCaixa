@@ -62,4 +62,7 @@ bool command_get_sync_dir(char **args) {
   return false;
 }
 
-bool command_exit(char **args) { return true; }
+bool command_exit(char **args) {
+  close_connection();
+  return true;
+}

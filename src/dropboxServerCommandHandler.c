@@ -1,5 +1,10 @@
 #include "../include/dropboxServerCommandHandler.h"
 
+void command_exit(int client_socket, struct client *client) {
+  close(client_socket);
+  pthread_exit(NULL);
+}
+
 void command_download(int client_socket, struct client *client) {
   printf("Server recebeu comando DOWNLOAD\n");
 

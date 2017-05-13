@@ -48,7 +48,7 @@ void *client_thread(void *thread_info) {
   strcpy(client->userid, ((struct thread_info *)thread_info)->userid);
   client->logged_in = true;
   // make client folder
-  if (is_client_valid()){
+  if (is_client_valid()) {
     if (mkdir(client->userid, 0777) < 0) {
       perror("ERROR MKDIR: ");
     }
@@ -65,7 +65,10 @@ void *client_thread(void *thread_info) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "download") == 0) {
       command_download(((struct thread_info *)thread_info)->newsockfd, client);
+    } else if (strcmp(command->data, "exit") == 0) {
+      command_exit(((struct thread_info *)thread_info)->newsockfd, client);
     }
+
   }
 
   return NULL;

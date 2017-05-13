@@ -75,7 +75,11 @@ void get_file(char *file) {
 /* From Assignment Specification
  * Closes the connection to the server
  */
-void close_connection() {}
+void close_connection() {
+  char *command = "exit";
+  send_data(command, client_socket, (int)(strlen(command) * sizeof(char)));
+  close(client_socket);
+}
 
 int main(int argc, char *argv[]) {
   if (argc < CLIENT_ARGUMENTS) {
