@@ -4,6 +4,8 @@
 #define MAXNAME 256
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
+#include "dropboxSemaphore.h"
+#include "dropboxList.h"
 #include <dirent.h>
 #include <libgen.h>
 #include <netinet/in.h>
@@ -19,6 +21,7 @@
 #define MAXFILES 30
 #define PORT 55000
 #define MAX_SESSIONS 2
+#define DEVICE_FREE -1
 
 struct file_info {
   char name[MAXNAME];
@@ -27,12 +30,13 @@ struct file_info {
   int size;
 };
 
-struct client {
+typedef struct client {
+  struct list_head client_list;
   int devices[MAX_SESSIONS];
   char userid[MAXNAME];
-  struct file_info files[MAXFILES]; //;
+  struct file_info files[MAXFILES];
   int logged_in;
-};
+} client_t;
 
 struct thread_info {
   int newsockfd;
@@ -40,10 +44,17 @@ struct thread_info {
 };
 
 void sync_server();
-bool is_client_valid(void);
 void *client_thread(void *thread_info);
 void receive_file(char *file);
 void send_file(char *file);
 char *read_user_name(int newsockfd);
 void server_listen(int server_socket);
+
+struct list_head client_list;
+void client_list_init();
+client_t* client__list_signup(char* userid);
+client_t* client_list_search(char *userid);
+bool client_open_session(client_t *client, int device_id);
+bool client_close_session(client_t *client, int device_id);
+
 #endif
