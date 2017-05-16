@@ -3,6 +3,7 @@
 #else
 #include <semaphore.h>
 #endif
+#include <errno.h>
 
 typedef struct dbsem {
 #ifdef __APPLE__
