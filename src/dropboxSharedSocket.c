@@ -58,8 +58,8 @@ void receive_file_and_save_to_path(int socket, char *path) {
 // send data with file size
 void send_data(char *data, int sockfd, datasize_t datalen) {
   int n;
-  datalen = htonl(datalen);
-  if ((n = (int)write(sockfd, (char *)&datalen, sizeof(datalen))) < 0) {
+  datasize_t tmp = htonl(datalen);
+  if ((n = (int)write(sockfd, (void *)&tmp, sizeof(tmp))) < 0) {
     perror("ERROR writing to socket: ");
     close(sockfd);
     exit(0);
