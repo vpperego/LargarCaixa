@@ -1,6 +1,7 @@
 #include "../include/dropboxServerCommandHandler.h"
 
 void command_exit(int client_socket, struct client *client) {
+  client_close_session(client, client_socket);
   close(client_socket);
   pthread_exit(NULL);
 }
@@ -50,7 +51,7 @@ void command_list(int client_socket, struct client *client) {
 
   while ((entry = readdir(dir)) != NULL) {
     if (entry->d_type == DT_REG) {
-      send_data(entry->d_name, client_socket, entry->d_namlen);
+      send_data(entry->d_name, client_socket, strlen(entry->d_name));
     }
   }
   send_data(EO_LIST, client_socket, strlen(EO_LIST));

@@ -1,6 +1,9 @@
 #include "../include/dropboxServer.h"
 #include "../include/dropboxServerCommandHandler.h"
 
+int readcount = 0, writecount = 0;
+dbsem_t rmutex, wmutex, read_try, list_access;
+
 /* From Assignment Specification
  * Synchronizes the directory named "sync_dir_<username>" with the clients
  * sync_dir.
@@ -40,19 +43,50 @@ int start_server() {
   if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     perror("ERROR on binding");
 
+  client_list_init();
+
   return sockfd;
 }
 
 void *client_thread(void *thread_info) {
-  struct client *client = malloc(sizeof(struct client));
-  strcpy(client->userid, ((struct thread_info *)thread_info)->userid);
-  client->logged_in = true;
-  // make client folder
-  if (is_client_valid()) {
-    if (mkdir(client->userid, 0777) < 0) {
-      perror("ERROR MKDIR: ");
+
+  struct thread_info *ti = (struct thread_info *)thread_info;
+  client_t *client; 
+
+  dbsem_wait(&wmutex);
+  writecount++;
+  if(writecount == 1) dbsem_wait(&read_try);
+  dbsem_post(&wmutex);
+
+  dbsem_wait(&list_access);
+  if((client = client_list_search(ti->userid)) == NULL) {
+    printf("%s não registrado, registrar.\n", ti->userid);
+    if((client = client__list_signup(ti->userid)) == NULL) {
+      printf("%s erro ao criar pasta!\n", ti->userid);
+      // error creating registering (mkdir error)
+      // dbsem_post(&list_access); // since the server isnt loading old users at startup, these lines are commented
+      // return NULL;              // currently we register all users again and the their folder may be already created 
     }
   }
+  dbsem_post(&list_access);
+
+  dbsem_wait(&wmutex);
+  writecount--;
+  if(writecount == 0) dbsem_post(&read_try);
+  dbsem_post(&wmutex);
+
+  int session_id = ti->newsockfd;
+
+  if(client_open_session(client, session_id) == false) {
+    printf("%s já está usando todos os devices.\n", client->userid);
+    // reached the max number of sessions
+    // should we put it to wait? something like semaphore?
+    // or just kick it off?
+    close(ti->newsockfd);
+    pthread_exit(NULL);
+    return NULL;
+  }
+
   while (true) {
     // read command from client
     printf("ESPERANDO COMANDO\n");
@@ -68,19 +102,8 @@ void *client_thread(void *thread_info) {
     } else if (strcmp(command->data, "exit") == 0) {
       command_exit(((struct thread_info *)thread_info)->newsockfd, client);
     }
-
   }
-
   return NULL;
-}
-
-/*
- * See if the user is valid (i.e, is registered and has an available device
- * slot)
- */
-bool is_client_valid(void) {
-  //@TODO check for client folder and number of devices
-  return true;
 }
 
 char *read_user_name(int newsockfd) {
@@ -124,3 +147,79 @@ int main(int argc, char *argv[]) {
   int server_socket = start_server();
   server_listen(server_socket);
 }
+
+void client_list_init() {
+
+  dbsem_init(&wmutex, 1);
+  dbsem_init(&rmutex, 1);
+  dbsem_init(&read_try, 1);
+  dbsem_init(&list_access, 1);
+
+  // if(is_client_list_in_disk()) {
+  //   client_list_fread();
+  // } else {
+    INIT_LIST_HEAD(&client_list);
+  // }
+}
+
+client_t* client__list_signup(char* userid) {
+  client_t *client = malloc(sizeof(client_t));
+  strcpy(client->userid, userid);
+  client->logged_in = false;
+  memset(client->devices, DEVICE_FREE, sizeof(client->devices));
+  memset(client->files, 0, sizeof(client->files));
+  if (mkdir(client->userid, 0777) < 0) {
+    // perror("ERROR MKDIR: ");
+    // return NULL;
+  }
+  list_add(&client->client_list, &client_list);
+  return client;
+}
+
+client_t* client_list_search(char *userid) {
+  client_t *iterator;
+  list_for_each_entry(iterator, &client_list, client_list)
+    if(strcmp(userid, iterator->userid) == 0)
+      return iterator;
+  return NULL;
+}
+
+bool client_open_session(client_t *client, int device_id) {
+  for (int i = 0; i < MAX_SESSIONS; ++i) {
+    if(client->devices[i] == DEVICE_FREE) {
+      client->devices[i] = device_id;
+      client->logged_in = true;
+      printf("%s abriu sessão com device_id: %d\n", client->userid, device_id);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool client_close_session(client_t *client, int device_id) {
+  for (int i = 0; i < MAX_SESSIONS; ++i) {
+    if(client->devices[i] == device_id) {
+      client->devices[i] = DEVICE_FREE;
+      if(i == MAX_SESSIONS-1) client->logged_in = false;
+      printf("%s fechou sessão com device_id: %d\n", client->userid, device_id);
+      return true;
+    }
+  }
+  return false;
+}
+
+// bool is_client_list_in_disk() { 
+//     if((FILE *dbp = fopen(CLIENTDB_PATH, "r")) == NULL) {
+//       fclose(dbp); return false;
+//     } else  {
+//       fclose(dbp); return true;
+//     }
+// }
+
+// void client_list_fread() {
+//   return;
+// }
+
+// void client_list_fwrite() {
+//   return;
+// }
