@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #define CLIENT_ARGUMENTS 4
 #define MAXNAME 256
@@ -28,5 +29,6 @@ void sync_client();
 void send_file(char *file);
 void get_file(char *file);
 void close_connection();
+void check_sync_dir();
 
 #endif

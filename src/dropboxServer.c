@@ -48,11 +48,36 @@ int start_server() {
   return sockfd;
 }
 
+void send_all_files(char *userid,int sockfd)
+{
+  printf("send_all_files\n" );
+  DIR *dir;
+  struct dirent *ent;
+  if ((dir = opendir (userid)) != NULL) {
+  /* print all the files and directories within directory */
+    while ((ent = readdir (dir)) != NULL) {
+      printf("Abrindo  o arquivo %s\n",ent->d_name );
+
+      //TODO - fix this IF gambiarra
+      if(strcmp(ent->d_name,".")!=0 && strcmp(ent->d_name,"..")!=0)
+      {
+        send_data(ent->d_name, sockfd, (int)(strlen(ent->d_name) * sizeof(char))); //send filename
+        send_file_from_path(sockfd,ent->d_name);
+      }
+    }
+    send_data(FILE_SEND_OVER, sockfd, (int)(strlen(FILE_SEND_OVER) * sizeof(char)));
+    closedir (dir);
+  }
+  else
+    printf("ERRO EM OPENDIR\n" );
+
+}
 void *client_thread(void *thread_info) {
 
   struct thread_info *ti = (struct thread_info *)thread_info;
-  client_t *client; 
-
+  struct buffer *command;
+  client_t *client;
+  sync_server();
   dbsem_wait(&wmutex);
   writecount++;
   if(writecount == 1) dbsem_wait(&read_try);
@@ -65,9 +90,10 @@ void *client_thread(void *thread_info) {
       printf("%s erro ao criar pasta!\n", ti->userid);
       // error creating registering (mkdir error)
       // dbsem_post(&list_access); // since the server isnt loading old users at startup, these lines are commented
-      // return NULL;              // currently we register all users again and the their folder may be already created 
+      // return NULL;              // currently we register all users again and the their folder may be already created
     }
   }
+
   dbsem_post(&list_access);
 
   dbsem_wait(&wmutex);
@@ -90,10 +116,14 @@ void *client_thread(void *thread_info) {
   while (true) {
     // read command from client
     printf("ESPERANDO COMANDO\n");
-    struct buffer *command = read_data(((struct thread_info *)thread_info)->newsockfd);
+    command = read_data(((struct thread_info *)thread_info)->newsockfd);
     printf("RECEBEU COMANDO\n");
+
     //@TODO refactor
-    if (strcmp(command->data, "upload") == 0) {
+    if (strcmp(command->data, GET_ALL_FILES) == 0) {
+      printf("SEND ALL FILES\n");
+      send_all_files(client->userid,((struct thread_info *)thread_info)->newsockfd);
+    }else if (strcmp(command->data, "upload") == 0) {
       command_upload(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "list") == 0) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client);
@@ -102,6 +132,7 @@ void *client_thread(void *thread_info) {
     } else if (strcmp(command->data, "exit") == 0) {
       command_exit(((struct thread_info *)thread_info)->newsockfd, client);
     }
+    //free(command);//is this right?
   }
   return NULL;
 }
@@ -208,7 +239,7 @@ bool client_close_session(client_t *client, int device_id) {
   return false;
 }
 
-// bool is_client_list_in_disk() { 
+// bool is_client_list_in_disk() {
 //     if((FILE *dbp = fopen(CLIENTDB_PATH, "r")) == NULL) {
 //       fclose(dbp); return false;
 //     } else  {

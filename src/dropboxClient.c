@@ -1,4 +1,5 @@
 #include "../include/dropboxClient.h"
+#include <errno.h>
 
 char userid[MAXNAME];
 int client_socket;
@@ -81,6 +82,45 @@ void close_connection() {
   close(client_socket);
 }
 
+/*
+  Check if the client sync_dir is already created
+*/
+void check_sync_dir()
+{
+  struct passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+  char sync_dir_path[256];
+  struct buffer *filename;
+  strcpy(sync_dir_path, homedir);
+  strcat(sync_dir_path, "/sync_dir_");
+  strcat(sync_dir_path, userid);
+  DIR* dir = opendir(sync_dir_path);
+  char fullname[256];
+
+  if (dir) {
+    // TODO - if the dir already exist, we need to check every file to see what needs to be synchronized
+
+  } else if(ENOENT == errno){
+    printf("vamos criar o dir no home!!\n" );
+
+    /* dir doesn't exist */
+    mkdir(sync_dir_path, 0777);
+    send_data(GET_ALL_FILES, client_socket, (int)(strlen(GET_ALL_FILES) * sizeof(char)));
+    while(true){
+
+      filename = read_data(client_socket);
+      strcpy(fullname,sync_dir_path);
+      strcat(fullname,"/");
+      strcat(fullname,filename->data);
+      if(strcmp(FILE_SEND_OVER,filename->data)==0)
+        break;
+        printf("vamos ler o filename %s!!\n",fullname);
+      receive_file_and_save_to_path(client_socket,fullname);  /* code */
+    }
+  }
+
+}
+
 int main(int argc, char *argv[]) {
   if (argc < CLIENT_ARGUMENTS) {
     fprintf(stderr, "usage %s %s\n", argv[0], ARGUMENTS);
@@ -89,6 +129,8 @@ int main(int argc, char *argv[]) {
   // save user name
   strcpy(userid, argv[1]);
   client_socket = connect_server(argv[2], atoi(argv[3]));
+  //TODO -refactor needed here.
+  check_sync_dir();
   start_client_interface();
   return 0;
 }
