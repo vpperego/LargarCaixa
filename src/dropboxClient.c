@@ -56,8 +56,8 @@ void sync_client() {}
  */
 void send_file(char *file) {
   char *command = "upload";
-  send_data(command, client_socket, (int)(strlen(command) * sizeof(char)));
-  send_data(file, client_socket, (int)(strlen(file) * sizeof(char)));
+  send_data(command, client_socket, (strlen(command) * sizeof(char)));
+  send_data(file, client_socket, (strlen(file) * sizeof(char)));
   send_file_from_path(client_socket, file);
 }
 
@@ -68,8 +68,8 @@ void send_file(char *file) {
  */
 void get_file(char *file) {
   char *command = "download";
-  send_data(command, client_socket, (int)(strlen(command) * sizeof(char)));
-  send_data(file, client_socket, (int)(strlen(file) * sizeof(char)));
+  send_data(command, client_socket, (strlen(command) * sizeof(char)));
+  send_data(file, client_socket, (strlen(file) * sizeof(char)));
   receive_file_and_save_to_path(client_socket, file);
 }
 
@@ -78,7 +78,7 @@ void get_file(char *file) {
  */
 void close_connection() {
   char *command = "exit";
-  send_data(command, client_socket, (int)(strlen(command) * sizeof(char)));
+  send_data(command, client_socket, (strlen(command) * sizeof(char)));
   close(client_socket);
 }
 

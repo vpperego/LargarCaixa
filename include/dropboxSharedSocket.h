@@ -23,12 +23,12 @@
 
 struct buffer {
   char *data;
-  int size;
+  datasize_t size;
 };
 
 void send_file_from_path(int socket, char *path);
 void receive_file_and_save_to_path(int socket, char *path);
-void send_data(char *data, int sockfd, int datalen);
+void send_data(char *data, int sockfd, datasize_t datalen);
 struct buffer *read_data(int newsockfd);
 
 #endif /* dropboxSharedSocket_h */

@@ -40,7 +40,7 @@ bool command_download(char **args) {
 bool command_list(char **args) {
   char *command = "list";
   struct buffer *file_name_buffer = NULL;
-  send_data(command, client_socket, (int)(strlen(command) * sizeof(char)));
+  send_data(command, client_socket, (strlen(command) * sizeof(char)));
   file_name_buffer = read_data(client_socket);
   while (strcmp(file_name_buffer->data, EO_LIST) != 0) {
     printf("%s\n", file_name_buffer->data);

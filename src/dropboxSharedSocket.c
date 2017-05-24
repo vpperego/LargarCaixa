@@ -23,13 +23,13 @@ void send_file_from_path(int socket, char *path) {
       }
 
       /* Read the entire file into memory. */
-      size_t newLen = fread(source, sizeof(char), bufsize, fp);
+      datasize_t newLen = fread(source, sizeof(char), bufsize, fp);
       if (ferror(fp) != 0) {
         fputs("Error reading file", stderr);
       } else {
         source[newLen++] = '\0'; /* Just to be safe. */
       }
-      send_data(source, socket, (int)(newLen * sizeof(char)));
+      send_data(source, socket, (newLen * sizeof(char)));
     }
     fclose(fp);
   }
@@ -56,10 +56,10 @@ void receive_file_and_save_to_path(int socket, char *path) {
 }
 
 // send data with file size
-void send_data(char *data, int sockfd, int datalen) {
+void send_data(char *data, int sockfd, datasize_t datalen) {
   int n;
-  int tmp = htonl(datalen);
-  if ((n = (int)write(sockfd, (char *)&tmp, sizeof(tmp))) < 0) {
+  datasize_t tmp = htonl(datalen);
+  if ((n = (int)write(sockfd, (void *)&tmp, sizeof(tmp))) < 0) {
     perror("ERROR writing to socket: ");
     close(sockfd);
     exit(0);
@@ -71,16 +71,17 @@ void send_data(char *data, int sockfd, int datalen) {
   }
 }
 
-// read data from client given the protocol '[int size][data size bytes]'
+// read data from client given the protocol '[datasize_t size][data size bytes]'
 struct buffer *read_data(int newsockfd) {
-  int buflen, n;
+  int n;
+  datasize_t buflen;
   // read data size
   n = (int)read(newsockfd, (char *)&buflen, sizeof(buflen));
   if (n < 0)
     perror("ERROR reading from socket");
   buflen = ntohl(buflen);
   char *buffer_data = malloc(sizeof(char) * buflen);
-  int amount_read = 0;
+  datasize_t amount_read = 0;
   // keep reading data until size is reached
   while (amount_read < buflen) {
     n = (int)read(newsockfd, (void *)buffer_data + amount_read,
