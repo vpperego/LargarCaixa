@@ -101,8 +101,6 @@ void check_sync_dir()
     // TODO - if the dir already exist, we need to check every file to see what needs to be synchronized
 
   } else if(ENOENT == errno){
-    printf("vamos criar o dir no home!!\n" );
-
     /* dir doesn't exist */
     mkdir(sync_dir_path, 0777);
     send_data(GET_ALL_FILES, client_socket, (int)(strlen(GET_ALL_FILES) * sizeof(char)));
@@ -114,7 +112,7 @@ void check_sync_dir()
       strcat(fullname,filename->data);
       if(strcmp(FILE_SEND_OVER,filename->data)==0)
         break;
-        printf("vamos ler o filename %s!!\n",fullname);
+  //      printf("vamos ler o filename %s!!\n",fullname);
       receive_file_and_save_to_path(client_socket,fullname);  /* code */
     }
   }

@@ -50,19 +50,22 @@ int start_server() {
 
 void send_all_files(char *userid,int sockfd)
 {
-  printf("send_all_files\n" );
+//  printf("send_all_files\n" );
   DIR *dir;
   struct dirent *ent;
+  char filepath[256];
   if ((dir = opendir (userid)) != NULL) {
   /* print all the files and directories within directory */
     while ((ent = readdir (dir)) != NULL) {
-      printf("Abrindo  o arquivo %s\n",ent->d_name );
 
       //TODO - fix this IF gambiarra
       if(strcmp(ent->d_name,".")!=0 && strcmp(ent->d_name,"..")!=0)
       {
         send_data(ent->d_name, sockfd, (int)(strlen(ent->d_name) * sizeof(char))); //send filename
-        send_file_from_path(sockfd,ent->d_name);
+        strcpy(filepath,userid);
+        strcat(filepath,"/");
+        strcat(filepath,ent->d_name);
+        send_file_from_path(sockfd,filepath);
       }
     }
     send_data(FILE_SEND_OVER, sockfd, (int)(strlen(FILE_SEND_OVER) * sizeof(char)));
@@ -121,7 +124,6 @@ void *client_thread(void *thread_info) {
 
     //@TODO refactor
     if (strcmp(command->data, GET_ALL_FILES) == 0) {
-      printf("SEND ALL FILES\n");
       send_all_files(client->userid,((struct thread_info *)thread_info)->newsockfd);
     }else if (strcmp(command->data, "upload") == 0) {
       command_upload(((struct thread_info *)thread_info)->newsockfd, client);
