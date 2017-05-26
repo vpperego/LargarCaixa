@@ -5,10 +5,34 @@ int readcount = 0, writecount = 0;
 dbsem_t rmutex, wmutex, read_try, list_access;
 
 /* From Assignment Specification
- * Synchronizes the directory named "sync_dir_<username>" with the clients
- * sync_dir.
+ * Synchronizes the directory named "synch_dir_<username>" with the clients
+ * synch_dir.
  */
-void sync_server() {}
+void * synch_server(void *thread_info)
+{
+  struct thread_info *ti = (struct thread_info *)thread_info;
+  struct list_head * file_list = malloc(sizeof(file_list));
+  printf("SYNC THREAD DO USER %s!!!\n",ti->userid);
+  char *userid = read_user_name(ti->newsockfd);
+
+  DIR *dir;
+  struct dirent *ent;
+
+  if ((dir = opendir (userid)) != NULL) {
+  /* print all the files and directories within directory */
+    while ((ent = readdir (dir)) != NULL) {
+      if(is_a_file(ent->d_name)==true)
+      {
+        file_list_add(file_list,ent->d_name, userid);
+      }
+    }
+  }
+  /*
+     start file list and send to client
+  */
+
+  return NULL;
+}
 
 /* From Assignment Specification
  * Receive a file from the client.
@@ -43,8 +67,6 @@ int start_server() {
   if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     perror("ERROR on binding");
 
-  client_list_init();
-
   return sockfd;
 }
 
@@ -58,8 +80,7 @@ void send_all_files(char *userid,int sockfd)
   /* print all the files and directories within directory */
     while ((ent = readdir (dir)) != NULL) {
 
-      //TODO - fix this IF gambiarra
-      if(strcmp(ent->d_name,".")!=0 && strcmp(ent->d_name,"..")!=0)
+      if(is_a_file(ent->d_name)==true)
       {
         send_data(ent->d_name, sockfd, (int)(strlen(ent->d_name) * sizeof(char))); //send filename
         strcpy(filepath,userid);
@@ -80,7 +101,7 @@ void *client_thread(void *thread_info) {
   struct thread_info *ti = (struct thread_info *)thread_info;
   struct buffer *command;
   client_t *client;
-  sync_server();
+
   dbsem_wait(&wmutex);
   writecount++;
   if(writecount == 1) dbsem_wait(&read_try);
@@ -125,7 +146,7 @@ void *client_thread(void *thread_info) {
     //@TODO refactor
     if (strcmp(command->data, GET_ALL_FILES) == 0) {
       send_all_files(client->userid,((struct thread_info *)thread_info)->newsockfd);
-    }else if (strcmp(command->data, "upload") == 0) {
+    } if (strcmp(command->data, "upload") == 0) {
       command_upload(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "list") == 0) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client);
@@ -171,13 +192,18 @@ void server_listen(int server_socket) {
 
     thread_info->newsockfd = newsockfd;
     strcpy(thread_info->userid, userid);
+    //TODO - if userid == synch then create synch_thread
+    if(strcmp(userid,CREATE_SYNCH_THREAD)==0)
+      pthread_create(&th, NULL, synch_server, thread_info);
 
-    pthread_create(&th, NULL, client_thread, thread_info);
+    else
+      pthread_create(&th, NULL, client_thread, thread_info);
   }
 }
 
 int main(int argc, char *argv[]) {
   int server_socket = start_server();
+  client_list_init();
   server_listen(server_socket);
 }
 

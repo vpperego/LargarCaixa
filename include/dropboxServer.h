@@ -43,7 +43,7 @@ struct thread_info {
   char userid[MAXNAME];
 };
 
-void sync_server();
+void *sync_server();
 void *client_thread(void *thread_info);
 void receive_file(char *file);
 void send_file(char *file);
