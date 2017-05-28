@@ -13,6 +13,7 @@
 #include <time.h>
 #include <pwd.h>
 
+#define DELETE_FILE "DELETE_FILE"
 #define GET_ALL_FILES "GET_ALL_FILES"
 #define NEW_CONNECTION "NEW_CONNECTION"
 #define SEND_NAME "SEND_NAME"
@@ -36,5 +37,10 @@ file_t* file_list_search(struct list_head *file_list, char *filename);
 file_t* file_list_add(struct list_head *file_list ,char* filename,char *userid) ;
 char * get_sync_dir(char *userid);
 bool is_a_file(char *filename);
+char * file_t_to_char(file_t * file);
+file_t * char_to_file_t(char * file);
+void file_list_remove(struct list_head * file_list,char *filename);
+file_t * is_file_missing(char * userid,struct list_head *file_list);
+
 
 #endif

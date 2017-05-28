@@ -12,12 +12,14 @@ void * synch_server(void *thread_info)
 {
   struct thread_info *ti = (struct thread_info *)thread_info;
   struct list_head * file_list = malloc(sizeof(file_list));
-  printf("SYNC THREAD DO USER %s!!!\n",ti->userid);
+  INIT_LIST_HEAD(file_list);
   char *userid = read_user_name(ti->newsockfd);
-
+  printf("SYNC THREAD DO USER %s!!!\n",userid);
+  char * buffer;
   DIR *dir;
   struct dirent *ent;
-
+  file_t * iterator;
+  //TODO - refactor here, create a function for this
   if ((dir = opendir (userid)) != NULL) {
   /* print all the files and directories within directory */
     while ((ent = readdir (dir)) != NULL) {
@@ -27,12 +29,59 @@ void * synch_server(void *thread_info)
       }
     }
   }
-  /*
-     start file list and send to client
-  */
 
+  list_for_each_entry(iterator,file_list,file_list)
+  {
+    printf("MANDANDO O ARQUIVO %s\n",iterator->filename);
+    buffer = file_t_to_char(iterator);
+    send_data(buffer, ti->newsockfd,sizeof(file_t));
+    free(buffer);
+  }
+  send_data(FILE_SEND_OVER,ti->newsockfd,(int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
+
+  printf("TERMINEI DE MANDAR OS ARQUIVOS\n");
+  /*
+  TODO- guarantee that the file_list size is lesser MAXFILES
+  */
+  struct buffer *filename ;//TODO-REFACTORING: rename this
+  char *fullpath = malloc(sizeof(userid)+sizeof(MAXNAME));
+  while(true)
+  {
+    //TODO GET THE FILE INFO AND SET IT IN THE LIST
+    filename = read_data(ti->newsockfd);
+    if(strcmp(DELETE_FILE,filename->data)==0)
+    {
+      filename = read_data(ti->newsockfd);//read the filename to delete
+      printf("LIST DEL\n" );
+
+      file_list_remove(file_list,filename->data);
+
+      strcpy(fullpath,userid);
+      strcat(fullpath,"/");
+      strcat(fullpath,filename->data);
+      printf("I WILL REMOVE %s\n", fullpath);
+      remove(fullpath);//delete the file
+      filename = read_data(ti->newsockfd); //get the filename
+      strcpy(fullpath,userid);
+      strcat(fullpath,"/");
+      strcat(fullpath,filename->data);
+
+  //    iterator = char_to_file_t(filename->data);
+
+      printf("salvando arquivo em %s\n",fullpath);
+      receive_file_and_save_to_path(ti->newsockfd,fullpath);
+//      file_list_add(file_list,filename->data,userid);TODO - add file properly
+    }else{
+      printf("leu filename%s\n", filename->data);
+      strcpy(fullpath,userid);
+      strcat(fullpath,"/");
+      strcat(fullpath,filename->data);
+      receive_file_and_save_to_path(ti->newsockfd,fullpath);
+    }
+  }
   return NULL;
 }
+
 
 /* From Assignment Specification
  * Receive a file from the client.

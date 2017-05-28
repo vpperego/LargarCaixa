@@ -83,19 +83,35 @@ void close_connection() {
   close(client_socket);
 }
 
-void * sync_thread()
+void * synch_thread()
 {
   DIR *dir;
   struct dirent *ent;
   char * sync_dir_path = get_sync_dir(userid);
   char  fullpath[MAXNAME];
-  file_t * current_file;
   struct stat file_stat;
+  file_t * current_file ;
+  struct buffer * server_file;
+  char * file_buffer;
   INIT_LIST_HEAD(&file_list);
 
+  //tell the server to create a thread to synchronize with this one
   send_data(CREATE_SYNCH_THREAD, synch_socket, (int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
-
-
+  //send the userid for the new server thread
+  send_data(userid, synch_socket, (int)(strlen(userid) * sizeof(char)));
+  /*
+    Get the info from all server files theserver
+  */
+  while(true){
+    server_file = read_data(synch_socket);
+    if(strcmp(FILE_SEND_OVER,server_file->data)==0)
+      break;
+    current_file = char_to_file_t(server_file->data);
+    list_add(&current_file->file_list, &file_list);
+    //free(server_file->data);
+  }
+  //TODO - compare with local files and download the needed ones
+  printf("TERMINEI DE RECEBER ARQUIVOS DO SERVER!\n");
    //TODO - take the last change time from the server and refactor.
    do{
      dir = opendir (sync_dir_path);;
@@ -108,28 +124,48 @@ void * sync_thread()
         if(is_a_file(ent->d_name)==true){
           if((current_file=file_list_search(&file_list,ent->d_name))!=NULL){
 
-        //    printf("PEGANDO O ARQUIVO %s\n",fullpath);
-
             stat(fullpath, &file_stat);
             if(difftime(file_stat.st_mtime,current_file->last_modified) > 0)
             {
-              printf("ARQUIVO ALTERADO RECENTEMENTE %s\n",fullpath);
-
+               printf("ARQUIVO ALTERADO RECENTEMENTE %s\n",current_file->filename);
+               //TODO - send the info from the file
               current_file->last_modified = file_stat.st_mtime;
-              //send_file_from_path(synch_socket, fullpath);
+              file_buffer = file_t_to_char(current_file);
+              send_data(current_file->filename,synch_socket,strlen(current_file->filename)*sizeof(char));
+              send_file_from_path(synch_socket, fullpath);
             }
-          }else{
-            printf("NOVO ARQUIVO NA LISTA %s\n",fullpath);
 
+          }else if((current_file=is_file_missing(userid,&file_list)) != NULL){
+            printf("ARQUIVO ATUALIZADO\n" );
+            send_data(DELETE_FILE,synch_socket,strlen(DELETE_FILE)*sizeof(char));
+            send_data(current_file->filename,synch_socket,sizeof(current_file->filename)*sizeof(char));
+
+            list_del(&current_file->file_list);
+            file_list_add(&file_list,ent->d_name,userid);
+
+            send_data(ent->d_name,synch_socket,strlen(ent->d_name)*sizeof(char));
+            send_file_from_path(synch_socket, fullpath);
+          }else{
+            //TODO - send the info from the file
+
+              printf("ARQUIVO NOVO NO DIRETORIO %s\n",ent->d_name );
               file_list_add(&file_list,ent->d_name,userid);
-              //send_file_from_path(synch_socket,fullpath);
+               printf("SALVAOU NA LISTA\n" );
+
+              send_data(ent->d_name,synch_socket,strlen(ent->d_name)*sizeof(char)+1);
+              printf("ENVIOU O NOME\n" );
+
+              send_file_from_path(synch_socket, fullpath);
+              printf("ENVIOU O arq\n" );
+
           }
         }
       }
         closedir(dir);
-        sleep(10);
+        sleep(5);
   }while(true);
 }
+
 
 /*
   Check if the client sync_dir is already created
@@ -165,7 +201,7 @@ void check_sync_dir(char *host, int port)
   }
   closedir(sync_dir);
 
-pthread_create(&th, NULL, sync_thread,NULL);
+pthread_create(&th, NULL, synch_thread,NULL);
 }
 
 int main(int argc, char *argv[]) {

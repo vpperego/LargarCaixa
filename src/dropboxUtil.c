@@ -1,4 +1,6 @@
 #include "../include/dropboxUtil.h"
+#include <dirent.h>
+
 
 char *read_line(void) {
   char *buffer;
@@ -37,6 +39,50 @@ char **split_args(char *command) {
   return tokens;
 }
 
+void file_list_remove(struct list_head * file_list,char *filename)
+{
+  file_t * iterator;
+  list_for_each_entry(iterator,file_list,file_list)
+    if(strcmp(iterator->filename,filename)==0)
+    {
+      list_del(&iterator->file_list);
+      return;
+    }
+
+}
+
+/*
+  Searches the sync_dir for all the files in the list
+*/
+file_t * is_file_missing(char * userid,struct list_head *file_list)
+{
+  char * sync_dir_path = get_sync_dir(userid);
+  DIR *dir;
+  struct dirent *ent;
+  file_t *iterator;
+  bool found;
+  dir = opendir (sync_dir_path);;
+
+  list_for_each_entry(iterator,file_list,file_list)
+  {
+    found = false;
+    while((ent = readdir (dir)) != NULL){
+      printf("end-> %s\n",ent->d_name );
+      if(strcmp(ent->d_name, iterator->filename) == 0)
+      {
+          found = true;
+          break;
+      }
+    }
+    if(found==false)
+    {
+        printf("MISSING %s\n",iterator->filename );
+        return iterator;
+      }
+  }
+  return NULL;
+}
+
 file_t* file_list_search(struct list_head *file_list, char *filename) {
   file_t *iterator;
   list_for_each_entry(iterator, file_list, file_list)
@@ -44,6 +90,17 @@ file_t* file_list_search(struct list_head *file_list, char *filename) {
       return iterator;
   return NULL;
 }
+
+void remove_file_list(struct list_head *file_list, char *filename)
+{
+  file_t *iterator;
+  list_for_each_entry(iterator, file_list, file_list)
+    if(strcmp(filename, iterator->filename) == 0)
+    {
+      list_del(&iterator->file_list);
+    }
+}
+
 
 file_t* file_list_add(struct list_head *file_list ,char* filename,char *userid) {
   file_t *new_file = malloc(sizeof(file_t));
@@ -59,6 +116,33 @@ file_t* file_list_add(struct list_head *file_list ,char* filename,char *userid) 
   return new_file;
 }
 
+file_t * char_to_file_t(char * file)
+{
+  int index = 0;
+  file_t * copy_buffer = malloc(sizeof(file_t));
+
+  memcpy(&copy_buffer->file_list, file,sizeof(copy_buffer->file_list));
+  index+=sizeof(copy_buffer->file_list);
+  memcpy(copy_buffer->filename, file+index,sizeof(copy_buffer->filename));
+  index+=sizeof(copy_buffer->filename);
+  memcpy(&copy_buffer->last_modified, file+index, sizeof(copy_buffer->last_modified));
+
+  return copy_buffer;
+}
+
+char * file_t_to_char(file_t * file)
+{
+  int index = 0;
+  char * copy_buffer = malloc(sizeof(file_t));
+
+  memcpy(copy_buffer,&file->file_list,sizeof(file->file_list));
+  index+=sizeof(file->file_list);
+  memcpy(copy_buffer+index,file->filename,sizeof(file->filename));
+  index+=sizeof(file->filename);
+  memcpy(copy_buffer+index,&file->last_modified,sizeof(file->last_modified));
+
+  return copy_buffer;
+}
 /*
   Check if the given file name is not the own directory or the parent directory
 */
