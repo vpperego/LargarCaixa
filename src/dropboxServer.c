@@ -4,6 +4,13 @@
 int readcount = 0, writecount = 0;
 dbsem_t rmutex, wmutex, read_try, list_access;
 
+
+void update_fullpath(char *fullpath,char *userid, char *filename)
+{
+  strcpy(fullpath,userid);
+  strcat(fullpath,"/");
+  strcat(fullpath,filename);
+}
 /* From Assignment Specification
  * Synchronizes the directory named "synch_dir_<username>" with the clients
  * synch_dir.
@@ -14,68 +21,59 @@ void * synch_server(void *thread_info)
   struct list_head * file_list = malloc(sizeof(file_list));
   INIT_LIST_HEAD(file_list);
   char *userid = read_user_name(ti->newsockfd);
-  printf("SYNC THREAD DO USER %s!!!\n",userid);
   char * buffer;
   DIR *dir;
   struct dirent *ent;
   file_t * iterator;
+  char fullpath[MAXNAME] ;//TODO - FIX THIS SIZE
+
   //TODO - refactor here, create a function for this
   if ((dir = opendir (userid)) != NULL) {
   /* print all the files and directories within directory */
     while ((ent = readdir (dir)) != NULL) {
       if(is_a_file(ent->d_name)==true)
       {
-        file_list_add(file_list,ent->d_name, userid);
+        strcpy(fullpath,userid);
+        strcat(fullpath,"/");
+        strcat(fullpath,ent->d_name);
+        file_list_add(file_list,fullpath);
+
       }
     }
   }
 
   list_for_each_entry(iterator,file_list,file_list)
   {
-    printf("MANDANDO O ARQUIVO %s\n",iterator->filename);
     buffer = file_t_to_char(iterator);
     send_data(buffer, ti->newsockfd,sizeof(file_t));
     free(buffer);
   }
   send_data(FILE_SEND_OVER,ti->newsockfd,(int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
 
-  printf("TERMINEI DE MANDAR OS ARQUIVOS\n");
-  /*
-  TODO- guarantee that the file_list size is lesser MAXFILES
-  */
-  struct buffer *filename ;//TODO-REFACTORING: rename this
-  char *fullpath = malloc(sizeof(userid)+sizeof(MAXNAME));
+  struct buffer *filename, *request;
   while(true)
   {
     //TODO GET THE FILE INFO AND SET IT IN THE LIST
+    request = read_data(ti->newsockfd);
     filename = read_data(ti->newsockfd);
-    if(strcmp(DELETE_FILE,filename->data)==0)
+    update_fullpath(fullpath, userid, filename->data);
+  //  printf("New fullpath : %s para request %s\n",fullpath,request->data );
+    if(strcmp(RENAME_FILE,request->data)==0)
     {
-      filename = read_data(ti->newsockfd);//read the filename to delete
-      printf("LIST DEL\n" );
 
       file_list_remove(file_list,filename->data);
-
-      strcpy(fullpath,userid);
-      strcat(fullpath,"/");
-      strcat(fullpath,filename->data);
-      printf("I WILL REMOVE %s\n", fullpath);
       remove(fullpath);//delete the file
       filename = read_data(ti->newsockfd); //get the filename
-      strcpy(fullpath,userid);
-      strcat(fullpath,"/");
-      strcat(fullpath,filename->data);
-
-  //    iterator = char_to_file_t(filename->data);
-
-      printf("salvando arquivo em %s\n",fullpath);
       receive_file_and_save_to_path(ti->newsockfd,fullpath);
-//      file_list_add(file_list,filename->data,userid);TODO - add file properly
+    }else if (strcmp(DOWNLOAD_FILE,request->data)==0){
+
+      send_file_from_path(ti->newsockfd,fullpath);
+    }else if (strcmp(DELETE_FILE,request->data)==0){
+
+      file_list_remove(file_list,filename->data);
+      remove(fullpath);//delete the file
     }else{
-      printf("leu filename%s\n", filename->data);
-      strcpy(fullpath,userid);
-      strcat(fullpath,"/");
-      strcat(fullpath,filename->data);
+
       receive_file_and_save_to_path(ti->newsockfd,fullpath);
     }
   }

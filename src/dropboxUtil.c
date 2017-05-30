@@ -39,6 +39,7 @@ char **split_args(char *command) {
   return tokens;
 }
 
+
 void file_list_remove(struct list_head * file_list,char *filename)
 {
   file_t * iterator;
@@ -52,7 +53,20 @@ void file_list_remove(struct list_head * file_list,char *filename)
 }
 
 /*
-  Searches the sync_dir for all the files in the list
+  Searches the sync_dir to see if a file was renamed (the filename is missing on the file_list)
+
+file_t * is_file_renamed(struct list_head *file_list,char *filename)
+{
+  file_t *iterator;
+
+  list_for_each_entry(iterator,file_list,file_list)
+    if(strcmp(filename, iterator->filename) == 0)
+      return iterator;
+  return NULL;
+}*/
+
+/*
+  Searches the sync_dir to see if a file is missing (i.e., was deleted)
 */
 file_t * is_file_missing(char * userid,struct list_head *file_list)
 {
@@ -67,7 +81,6 @@ file_t * is_file_missing(char * userid,struct list_head *file_list)
   {
     found = false;
     while((ent = readdir (dir)) != NULL){
-      printf("end-> %s\n",ent->d_name );
       if(strcmp(ent->d_name, iterator->filename) == 0)
       {
           found = true;
@@ -102,17 +115,19 @@ void remove_file_list(struct list_head *file_list, char *filename)
 }
 
 
-file_t* file_list_add(struct list_head *file_list ,char* filename,char *userid) {
+file_t* file_list_add(struct list_head * file_list ,char * fullpath) {
   file_t *new_file = malloc(sizeof(file_t));
   struct stat file_stat;
+  char * filename = basename(fullpath);
   strcpy(new_file->filename, filename);
-  char *filepath = get_sync_dir(userid);
-  strcat(filepath,filename);
 
-  stat(filepath, &file_stat);
+  if(stat(fullpath, &file_stat)!=0)
+    printf("ERROR em stat!\n" );
 
   new_file->last_modified = file_stat.st_mtime;
+
   list_add(&new_file->file_list, file_list);
+
   return new_file;
 }
 
