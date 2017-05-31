@@ -30,7 +30,6 @@ typedef enum { false, true } bool;
 
 typedef uint32_t datasize_t;
 #define SENDING_FILE "SENDING_FILE"
-typedef enum { false, true } bool;
 
 typedef struct file
 {
