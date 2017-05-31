@@ -4,6 +4,7 @@
 #include "dropboxClientUI.h"
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
+#include "dropboxList.h"
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pwd.h>
@@ -20,6 +21,7 @@
 #define MAXNAME 256
 #define MAXFILES 256
 #define ARGUMENTS "Client IP Port"
+
 
 extern char userid[MAXNAME];
 extern int client_socket;
