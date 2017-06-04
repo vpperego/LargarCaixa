@@ -122,8 +122,7 @@ void send_all_files(char *userid, int sockfd) {
         send_file_from_path(sockfd, filepath);
       }
     }
-    send_data(FILE_SEND_OVER, sockfd,
-              strlen(FILE_SEND_OVER) * sizeof(char));
+    send_data(FILE_SEND_OVER, sockfd, strlen(FILE_SEND_OVER) * sizeof(char));
     closedir(dir);
   } else
     printf("ERRO EM OPENDIR\n");

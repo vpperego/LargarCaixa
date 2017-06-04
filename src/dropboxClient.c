@@ -105,7 +105,7 @@ void download_missing_files() {
   }
 }
 
-void get_server_file_list(){
+void get_server_file_list() {
   struct buffer *server_file;
   file_t *current_file;
   while (true) {
@@ -117,10 +117,9 @@ void get_server_file_list(){
 
     list_add(&current_file->file_list, &file_list);
   }
-
 }
 
-void synch_deleted(){
+void synch_deleted() {
   file_t *current_file;
   if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
     send_data(DELETE_FILE, synch_socket, strlen(DELETE_FILE) * sizeof(char));
@@ -131,7 +130,7 @@ void synch_deleted(){
   }
 }
 
-bool updated_existing_file(char *fullpath, struct dirent *ent){
+bool updated_existing_file(char *fullpath, struct dirent *ent) {
   file_t *current_file;
   struct stat file_stat;
   char *file_buffer;
@@ -152,7 +151,7 @@ bool updated_existing_file(char *fullpath, struct dirent *ent){
   return false;
 }
 
-bool rename_files(char *fullpath, struct dirent *ent){
+bool rename_files(char *fullpath, struct dirent *ent) {
   file_t *current_file;
   if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
     send_data(RENAME_FILE, synch_socket,
@@ -163,8 +162,7 @@ bool rename_files(char *fullpath, struct dirent *ent){
     list_del(&current_file->file_list);
     file_list_add(&file_list, fullpath);
 
-    send_data(ent->d_name, synch_socket,
-              strlen(ent->d_name) * sizeof(char));
+    send_data(ent->d_name, synch_socket, strlen(ent->d_name) * sizeof(char));
     send_file_from_path(synch_socket, fullpath);
     return true;
   }
@@ -203,7 +201,7 @@ void *synch_thread() {
 
       updated = updated_existing_file(fullpath, ent);
       renamed = rename_files(fullpath, ent);
-      if(!renamed && !updated) {
+      if (!renamed && !updated) {
         file_list_add(&file_list, fullpath);
         send_data(SENDING_FILE, synch_socket,
                   strlen(SENDING_FILE) * sizeof(char) + 1);
@@ -222,8 +220,7 @@ void get_all_files(char *sync_dir_path) {
   char fullpath[256];
   struct buffer *filename;
 
-  send_data(GET_ALL_FILES, client_socket,
-            strlen(GET_ALL_FILES) * sizeof(char));
+  send_data(GET_ALL_FILES, client_socket, strlen(GET_ALL_FILES) * sizeof(char));
   while (true) {
     filename = read_data(client_socket);
     if (strcmp(FILE_SEND_OVER, filename->data) == 0)
