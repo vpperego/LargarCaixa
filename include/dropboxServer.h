@@ -2,10 +2,10 @@
 #define __dropboxServer__
 
 #define MAXNAME 256
+#include "dropboxList.h"
+#include "dropboxSemaphore.h"
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
-#include "dropboxSemaphore.h"
-#include "dropboxList.h"
 #include <dirent.h>
 #include <libgen.h>
 #include <netinet/in.h>
@@ -52,8 +52,8 @@ void server_listen(int server_socket);
 
 struct list_head client_list;
 void client_list_init();
-client_t* client__list_signup(char* userid);
-client_t* client_list_search(char *userid);
+client_t *client__list_signup(char *userid);
+client_t *client_list_search(char *userid);
 bool client_open_session(client_t *client, int device_id);
 bool client_close_session(client_t *client, int device_id);
 

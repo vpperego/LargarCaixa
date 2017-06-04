@@ -51,7 +51,7 @@ void command_list(int client_socket, struct client *client) {
 
   while ((entry = readdir(dir)) != NULL) {
     if (entry->d_type == DT_REG) {
-      send_data(entry->d_name, client_socket, strlen(entry->d_name)+1);
+      send_data(entry->d_name, client_socket, strlen(entry->d_name) + 1);
     }
   }
   send_data(EO_LIST, client_socket, strlen(EO_LIST));
