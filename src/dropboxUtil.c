@@ -72,7 +72,6 @@ file_t *is_file_missing(char *userid, struct list_head *file_list) {
   file_t *iterator;
   bool found;
   dir = opendir(sync_dir_path);
-  ;
 
   list_for_each_entry(iterator, file_list, file_list) {
     found = false;
@@ -154,10 +153,7 @@ char *file_t_to_char(file_t *file) {
   Check if the given file name is not the own directory or the parent directory
 */
 bool is_a_file(char *filename) {
-  if (strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0)
-    return true;
-  else
-    return false;
+  return strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0;
 }
 
 char *get_sync_dir(char *userid) {

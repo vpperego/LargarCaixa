@@ -24,9 +24,8 @@
 #define FILE_SEND_OVER "FILE_SEND_OVER"
 #define EO_LIST "*END_OF_LIST_TAG*"
 
+#include <stdbool.h>
 #include <stdint.h>
-
-typedef enum { false, true } bool;
 
 typedef uint32_t datasize_t;
 #define SENDING_FILE "SENDING_FILE"

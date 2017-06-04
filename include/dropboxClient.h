@@ -31,5 +31,9 @@ void send_file(char *file);
 void get_file(char *file);
 void close_connection();
 void check_sync_dir();
+void get_server_file_list();
+void synch_deleted();
+bool updated_existing_file(char *fullpath, struct dirent *ent);
+bool rename_files(char *fullpath, struct dirent *ent);
 
 #endif

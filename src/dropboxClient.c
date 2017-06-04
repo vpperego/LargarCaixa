@@ -105,23 +105,9 @@ void download_missing_files() {
   }
 }
 
-void *synch_thread() {
-  DIR *dir;
-  struct dirent *ent;
-  char *sync_dir_path = get_sync_dir(userid);
-  char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
-  struct stat file_stat;
-  file_t *current_file;
+void get_server_file_list(){
   struct buffer *server_file;
-  char *file_buffer;
-  INIT_LIST_HEAD(&file_list);
-
-  // tell the server to create a thread to synchronize with this one
-  send_data(CREATE_SYNCH_THREAD, synch_socket,
-            (int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
-  // send the userid for the new server thread
-  send_data(userid, synch_socket, (int)(strlen(userid) * sizeof(char)));
-
+  file_t *current_file;
   while (true) {
     server_file = read_data(synch_socket);
 
@@ -130,63 +116,99 @@ void *synch_thread() {
     current_file = char_to_file_t(server_file->data);
 
     list_add(&current_file->file_list, &file_list);
-    // free(server_file->data);
   }
+
+}
+
+void synch_deleted(){
+  file_t *current_file;
+  if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
+    send_data(DELETE_FILE, synch_socket, strlen(DELETE_FILE) * sizeof(char));
+    send_data(current_file->filename, synch_socket,
+              sizeof(current_file->filename) * sizeof(char) + 1);
+
+    list_del(&current_file->file_list);
+  }
+}
+
+bool updated_existing_file(char *fullpath, struct dirent *ent){
+  file_t *current_file;
+  struct stat file_stat;
+  char *file_buffer;
+  if ((current_file = file_list_search(&file_list, ent->d_name)) != NULL) {
+    stat(fullpath, &file_stat);
+    if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
+      send_data(SENDING_FILE, synch_socket,
+                strlen(SENDING_FILE) * sizeof(char) + 1);
+
+      current_file->last_modified = file_stat.st_mtime;
+      file_buffer = file_t_to_char(current_file);
+      send_data(current_file->filename, synch_socket,
+                strlen(current_file->filename) * sizeof(char) + 1);
+      send_file_from_path(synch_socket, fullpath);
+    }
+    return true;
+  }
+  return false;
+}
+
+bool rename_files(char *fullpath, struct dirent *ent){
+  file_t *current_file;
+  if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
+    send_data(RENAME_FILE, synch_socket,
+              strlen(DELETE_FILE) * sizeof(char) + 1);
+    send_data(current_file->filename, synch_socket,
+              sizeof(current_file->filename) * sizeof(char));
+
+    list_del(&current_file->file_list);
+    file_list_add(&file_list, fullpath);
+
+    send_data(ent->d_name, synch_socket,
+              strlen(ent->d_name) * sizeof(char));
+    send_file_from_path(synch_socket, fullpath);
+    return true;
+  }
+  return false;
+}
+
+void *synch_thread() {
+  DIR *dir;
+  struct dirent *ent;
+  char *sync_dir_path = get_sync_dir(userid);
+  char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
+  INIT_LIST_HEAD(&file_list);
+
+  // tell the server to create a thread to synchronize with this one
+  send_data(CREATE_SYNCH_THREAD, synch_socket,
+            strlen(CREATE_SYNCH_THREAD) * sizeof(char));
+  // send the userid for the new server thread
+  send_data(userid, synch_socket, (int)(strlen(userid) * sizeof(char)));
+
+  get_server_file_list();
 
   download_missing_files();
 
   do {
-    // CHECK IF A FILE WAS DELETED
-    if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
-      send_data(DELETE_FILE, synch_socket, strlen(DELETE_FILE) * sizeof(char));
-      send_data(current_file->filename, synch_socket,
-                sizeof(current_file->filename) * sizeof(char) + 1);
-
-      list_del(&current_file->file_list);
-    }
+    synch_deleted();
 
     dir = opendir(sync_dir_path);
     while ((ent = readdir(dir)) != NULL) {
+      bool updated = false;
+      bool renamed = false;
       strcpy(fullpath, sync_dir_path);
       strcat(fullpath, ent->d_name);
 
-      if (is_a_file(ent->d_name) == false)
+      if (!is_a_file(ent->d_name))
         continue;
 
-      if ((current_file = file_list_search(&file_list, ent->d_name)) != NULL) {
-        stat(fullpath, &file_stat);
-        if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
-          send_data(SENDING_FILE, synch_socket,
-                    strlen(SENDING_FILE) * sizeof(char) + 1);
-
-          current_file->last_modified = file_stat.st_mtime;
-          file_buffer = file_t_to_char(current_file);
-          send_data(current_file->filename, synch_socket,
-                    strlen(current_file->filename) * sizeof(char) + 1);
-          send_file_from_path(synch_socket, fullpath);
-        }
-
-      } else if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
-        send_data(RENAME_FILE, synch_socket,
-                  strlen(DELETE_FILE) * sizeof(char) + 1);
-        send_data(current_file->filename, synch_socket,
-                  sizeof(current_file->filename) * sizeof(char));
-
-        list_del(&current_file->file_list);
-        file_list_add(&file_list, fullpath);
-
-        send_data(ent->d_name, synch_socket,
-                  strlen(ent->d_name) * sizeof(char));
-        send_file_from_path(synch_socket, fullpath);
-      } else {
-
+      updated = updated_existing_file(fullpath, ent);
+      renamed = rename_files(fullpath, ent);
+      if(!renamed && !updated) {
         file_list_add(&file_list, fullpath);
         send_data(SENDING_FILE, synch_socket,
                   strlen(SENDING_FILE) * sizeof(char) + 1);
         send_data(ent->d_name, synch_socket,
                   strlen(ent->d_name) * sizeof(char) + 1);
-        //  printf("ENVIOU O NOME\n" );
-
         send_file_from_path(synch_socket, fullpath);
         //  printf("ENVIOU O arq\n" );
       }
@@ -201,15 +223,14 @@ void get_all_files(char *sync_dir_path) {
   struct buffer *filename;
 
   send_data(GET_ALL_FILES, client_socket,
-            (int)(strlen(GET_ALL_FILES) * sizeof(char)));
+            strlen(GET_ALL_FILES) * sizeof(char));
   while (true) {
     filename = read_data(client_socket);
+    if (strcmp(FILE_SEND_OVER, filename->data) == 0)
+      break;
     strcpy(fullpath, sync_dir_path);
     strcat(fullpath, "/");
     strcat(fullpath, filename->data);
-    if (strcmp(FILE_SEND_OVER, filename->data) == 0)
-      break;
-    //      printf("vamos ler o filename %s!!\n",fullname);
     receive_file_and_save_to_path(synch_socket, fullpath); /* code */
   }
 }

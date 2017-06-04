@@ -43,7 +43,7 @@ void *synch_server(void *thread_info) {
     free(buffer);
   }
   send_data(FILE_SEND_OVER, ti->newsockfd,
-            (int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
+            strlen(CREATE_SYNCH_THREAD) * sizeof(char));
 
   struct buffer *filename, *request;
   while (true) {
@@ -53,20 +53,16 @@ void *synch_server(void *thread_info) {
     update_fullpath(fullpath, userid, filename->data);
     //  printf("New fullpath : %s para request %s\n",fullpath,request->data );
     if (strcmp(RENAME_FILE, request->data) == 0) {
-
       file_list_remove(file_list, filename->data);
       remove(fullpath);                    // delete the file
       filename = read_data(ti->newsockfd); // get the filename
       receive_file_and_save_to_path(ti->newsockfd, fullpath);
     } else if (strcmp(DOWNLOAD_FILE, request->data) == 0) {
-
       send_file_from_path(ti->newsockfd, fullpath);
     } else if (strcmp(DELETE_FILE, request->data) == 0) {
-
       file_list_remove(file_list, filename->data);
       remove(fullpath); // delete the file
     } else {
-
       receive_file_and_save_to_path(ti->newsockfd, fullpath);
     }
   }
@@ -127,11 +123,12 @@ void send_all_files(char *userid, int sockfd) {
       }
     }
     send_data(FILE_SEND_OVER, sockfd,
-              (int)(strlen(FILE_SEND_OVER) * sizeof(char)));
+              strlen(FILE_SEND_OVER) * sizeof(char));
     closedir(dir);
   } else
     printf("ERRO EM OPENDIR\n");
 }
+
 void *client_thread(void *thread_info) {
 
   struct thread_info *ti = (struct thread_info *)thread_info;
@@ -234,10 +231,8 @@ void server_listen(int server_socket) {
 
     thread_info->newsockfd = newsockfd;
     strcpy(thread_info->userid, userid);
-    // TODO - if userid == synch then create synch_thread
     if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
       pthread_create(&th, NULL, synch_server, thread_info);
-
     else
       pthread_create(&th, NULL, client_thread, thread_info);
   }
