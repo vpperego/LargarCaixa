@@ -4,82 +4,74 @@
 int readcount = 0, writecount = 0;
 dbsem_t rmutex, wmutex, read_try, list_access;
 
-
-void update_fullpath(char *fullpath,char *userid, char *filename)
-{
-  strcpy(fullpath,userid);
-  strcat(fullpath,"/");
-  strcat(fullpath,filename);
+void update_fullpath(char *fullpath, char *userid, char *filename) {
+  strcpy(fullpath, userid);
+  strcat(fullpath, "/");
+  strcat(fullpath, filename);
 }
 /* From Assignment Specification
  * Synchronizes the directory named "synch_dir_<username>" with the clients
  * synch_dir.
  */
-void * synch_server(void *thread_info)
-{
+void *synch_server(void *thread_info) {
   struct thread_info *ti = (struct thread_info *)thread_info;
-  struct list_head * file_list = malloc(sizeof(file_list));
+  struct list_head *file_list = malloc(sizeof(file_list));
   INIT_LIST_HEAD(file_list);
   char *userid = read_user_name(ti->newsockfd);
-  char * buffer;
+  char *buffer;
   DIR *dir;
   struct dirent *ent;
-  file_t * iterator;
-  char fullpath[MAXNAME] ;//TODO - FIX THIS SIZE
+  file_t *iterator;
+  char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
 
-  //TODO - refactor here, create a function for this
-  if ((dir = opendir (userid)) != NULL) {
-  /* print all the files and directories within directory */
-    while ((ent = readdir (dir)) != NULL) {
-      if(is_a_file(ent->d_name)==true)
-      {
-        strcpy(fullpath,userid);
-        strcat(fullpath,"/");
-        strcat(fullpath,ent->d_name);
-        file_list_add(file_list,fullpath);
-
+  // TODO - refactor here, create a function for this
+  if ((dir = opendir(userid)) != NULL) {
+    /* print all the files and directories within directory */
+    while ((ent = readdir(dir)) != NULL) {
+      if (is_a_file(ent->d_name) == true) {
+        strcpy(fullpath, userid);
+        strcat(fullpath, "/");
+        strcat(fullpath, ent->d_name);
+        file_list_add(file_list, fullpath);
       }
     }
   }
 
-  list_for_each_entry(iterator,file_list,file_list)
-  {
+  list_for_each_entry(iterator, file_list, file_list) {
     buffer = file_t_to_char(iterator);
-    send_data(buffer, ti->newsockfd,sizeof(file_t));
+    send_data(buffer, ti->newsockfd, sizeof(file_t));
     free(buffer);
   }
-  send_data(FILE_SEND_OVER,ti->newsockfd,(int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
+  send_data(FILE_SEND_OVER, ti->newsockfd,
+            (int)(strlen(CREATE_SYNCH_THREAD) * sizeof(char)));
 
   struct buffer *filename, *request;
-  while(true)
-  {
-    //TODO GET THE FILE INFO AND SET IT IN THE LIST
+  while (true) {
+    // TODO GET THE FILE INFO AND SET IT IN THE LIST
     request = read_data(ti->newsockfd);
     filename = read_data(ti->newsockfd);
     update_fullpath(fullpath, userid, filename->data);
-  //  printf("New fullpath : %s para request %s\n",fullpath,request->data );
-    if(strcmp(RENAME_FILE,request->data)==0)
-    {
+    //  printf("New fullpath : %s para request %s\n",fullpath,request->data );
+    if (strcmp(RENAME_FILE, request->data) == 0) {
 
-      file_list_remove(file_list,filename->data);
-      remove(fullpath);//delete the file
-      filename = read_data(ti->newsockfd); //get the filename
-      receive_file_and_save_to_path(ti->newsockfd,fullpath);
-    }else if (strcmp(DOWNLOAD_FILE,request->data)==0){
+      file_list_remove(file_list, filename->data);
+      remove(fullpath);                    // delete the file
+      filename = read_data(ti->newsockfd); // get the filename
+      receive_file_and_save_to_path(ti->newsockfd, fullpath);
+    } else if (strcmp(DOWNLOAD_FILE, request->data) == 0) {
 
-      send_file_from_path(ti->newsockfd,fullpath);
-    }else if (strcmp(DELETE_FILE,request->data)==0){
+      send_file_from_path(ti->newsockfd, fullpath);
+    } else if (strcmp(DELETE_FILE, request->data) == 0) {
 
-      file_list_remove(file_list,filename->data);
-      remove(fullpath);//delete the file
-    }else{
+      file_list_remove(file_list, filename->data);
+      remove(fullpath); // delete the file
+    } else {
 
-      receive_file_and_save_to_path(ti->newsockfd,fullpath);
+      receive_file_and_save_to_path(ti->newsockfd, fullpath);
     }
   }
   return NULL;
 }
-
 
 /* From Assignment Specification
  * Receive a file from the client.
@@ -117,31 +109,28 @@ int start_server() {
   return sockfd;
 }
 
-void send_all_files(char *userid,int sockfd)
-{
-//  printf("send_all_files\n" );
+void send_all_files(char *userid, int sockfd) {
   DIR *dir;
   struct dirent *ent;
   char filepath[256];
-  if ((dir = opendir (userid)) != NULL) {
-  /* print all the files and directories within directory */
-    while ((ent = readdir (dir)) != NULL) {
+  if ((dir = opendir(userid)) != NULL) {
+    /* print all the files and directories within directory */
+    while ((ent = readdir(dir)) != NULL) {
 
-      if(is_a_file(ent->d_name)==true)
-      {
-        send_data(ent->d_name, sockfd, (int)(strlen(ent->d_name) * sizeof(char))); //send filename
-        strcpy(filepath,userid);
-        strcat(filepath,"/");
-        strcat(filepath,ent->d_name);
-        send_file_from_path(sockfd,filepath);
+      if (is_a_file(ent->d_name)) {
+        send_data(ent->d_name, sockfd,
+                  strlen(ent->d_name) * sizeof(char)); // send filename
+        strcpy(filepath, userid);
+        strcat(filepath, "/");
+        strcat(filepath, ent->d_name);
+        send_file_from_path(sockfd, filepath);
       }
     }
-    send_data(FILE_SEND_OVER, sockfd, (int)(strlen(FILE_SEND_OVER) * sizeof(char)));
-    closedir (dir);
-  }
-  else
-    printf("ERRO EM OPENDIR\n" );
-
+    send_data(FILE_SEND_OVER, sockfd,
+              (int)(strlen(FILE_SEND_OVER) * sizeof(char)));
+    closedir(dir);
+  } else
+    printf("ERRO EM OPENDIR\n");
 }
 void *client_thread(void *thread_info) {
 
@@ -151,17 +140,20 @@ void *client_thread(void *thread_info) {
 
   dbsem_wait(&wmutex);
   writecount++;
-  if(writecount == 1) dbsem_wait(&read_try);
+  if (writecount == 1)
+    dbsem_wait(&read_try);
   dbsem_post(&wmutex);
 
   dbsem_wait(&list_access);
-  if((client = client_list_search(ti->userid)) == NULL) {
+  if ((client = client_list_search(ti->userid)) == NULL) {
     printf("%s não registrado, registrar.\n", ti->userid);
-    if((client = client__list_signup(ti->userid)) == NULL) {
+    if ((client = client__list_signup(ti->userid)) == NULL) {
       printf("%s erro ao criar pasta!\n", ti->userid);
       // error creating registering (mkdir error)
-      // dbsem_post(&list_access); // since the server isnt loading old users at startup, these lines are commented
-      // return NULL;              // currently we register all users again and the their folder may be already created
+      // dbsem_post(&list_access); // since the server isnt loading old users at
+      // startup, these lines are commented return NULL;              //
+      // currently we register all users again and the their folder may be
+      // already created
     }
   }
 
@@ -169,12 +161,13 @@ void *client_thread(void *thread_info) {
 
   dbsem_wait(&wmutex);
   writecount--;
-  if(writecount == 0) dbsem_post(&read_try);
+  if (writecount == 0)
+    dbsem_post(&read_try);
   dbsem_post(&wmutex);
 
   int session_id = ti->newsockfd;
 
-  if(client_open_session(client, session_id) == false) {
+  if (client_open_session(client, session_id) == false) {
     printf("%s já está usando todos os devices.\n", client->userid);
     // reached the max number of sessions
     // should we put it to wait? something like semaphore?
@@ -192,8 +185,10 @@ void *client_thread(void *thread_info) {
 
     //@TODO refactor
     if (strcmp(command->data, GET_ALL_FILES) == 0) {
-      send_all_files(client->userid,((struct thread_info *)thread_info)->newsockfd);
-    } if (strcmp(command->data, "upload") == 0) {
+      send_all_files(client->userid,
+                     ((struct thread_info *)thread_info)->newsockfd);
+    }
+    if (strcmp(command->data, "upload") == 0) {
       command_upload(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "list") == 0) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client);
@@ -202,7 +197,7 @@ void *client_thread(void *thread_info) {
     } else if (strcmp(command->data, "exit") == 0) {
       command_exit(((struct thread_info *)thread_info)->newsockfd, client);
     }
-    //free(command);//is this right?
+    // free(command);//is this right?
   }
   return NULL;
 }
@@ -239,8 +234,8 @@ void server_listen(int server_socket) {
 
     thread_info->newsockfd = newsockfd;
     strcpy(thread_info->userid, userid);
-    //TODO - if userid == synch then create synch_thread
-    if(strcmp(userid,CREATE_SYNCH_THREAD)==0)
+    // TODO - if userid == synch then create synch_thread
+    if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
       pthread_create(&th, NULL, synch_server, thread_info);
 
     else
@@ -264,11 +259,11 @@ void client_list_init() {
   // if(is_client_list_in_disk()) {
   //   client_list_fread();
   // } else {
-    INIT_LIST_HEAD(&client_list);
+  INIT_LIST_HEAD(&client_list);
   // }
 }
 
-client_t* client__list_signup(char* userid) {
+client_t *client__list_signup(char *userid) {
   client_t *client = malloc(sizeof(client_t));
   strcpy(client->userid, userid);
   client->logged_in = false;
@@ -282,17 +277,17 @@ client_t* client__list_signup(char* userid) {
   return client;
 }
 
-client_t* client_list_search(char *userid) {
+client_t *client_list_search(char *userid) {
   client_t *iterator;
-  list_for_each_entry(iterator, &client_list, client_list)
-    if(strcmp(userid, iterator->userid) == 0)
-      return iterator;
+  list_for_each_entry(iterator, &client_list,
+                      client_list) if (strcmp(userid, iterator->userid) ==
+                                       0) return iterator;
   return NULL;
 }
 
 bool client_open_session(client_t *client, int device_id) {
   for (int i = 0; i < MAX_SESSIONS; ++i) {
-    if(client->devices[i] == DEVICE_FREE) {
+    if (client->devices[i] == DEVICE_FREE) {
       client->devices[i] = device_id;
       client->logged_in = true;
       printf("%s abriu sessão com device_id: %d\n", client->userid, device_id);
@@ -304,9 +299,10 @@ bool client_open_session(client_t *client, int device_id) {
 
 bool client_close_session(client_t *client, int device_id) {
   for (int i = 0; i < MAX_SESSIONS; ++i) {
-    if(client->devices[i] == device_id) {
+    if (client->devices[i] == device_id) {
       client->devices[i] = DEVICE_FREE;
-      if(i == MAX_SESSIONS-1) client->logged_in = false;
+      if (i == MAX_SESSIONS - 1)
+        client->logged_in = false;
       printf("%s fechou sessão com device_id: %d\n", client->userid, device_id);
       return true;
     }
