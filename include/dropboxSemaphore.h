@@ -5,6 +5,8 @@
 #endif
 #include <errno.h>
 
+#include <stdint.h>
+
 typedef struct dbsem {
 #ifdef __APPLE__
   dispatch_semaphore_t sem;

@@ -1,7 +1,6 @@
 #ifndef __dropboxServer__
 #define __dropboxServer__
 
-#define MAXNAME 256
 #include "dropboxList.h"
 #include "dropboxSemaphore.h"
 #include "dropboxSharedSocket.h"
@@ -38,10 +37,7 @@ typedef struct client {
   int logged_in;
 } client_t;
 
-struct thread_info {
-  int newsockfd;
-  char userid[MAXNAME];
-};
+
 
 void *sync_server();
 void *client_thread(void *thread_info);

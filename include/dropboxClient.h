@@ -5,6 +5,7 @@
 #include "dropboxList.h"
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
+#include "dropboxSynch.h"
 #include <dirent.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -18,7 +19,6 @@
 #include <unistd.h>
 
 #define CLIENT_ARGUMENTS 4
-#define MAXNAME 256
 #define MAXFILES 256
 #define ARGUMENTS "Client IP Port"
 

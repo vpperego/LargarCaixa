@@ -14,6 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#define MAXNAME 256
 #define DELETE_FILE "DELETE_FILE"
 #define RENAME_FILE "RENAME_FILE"
 #define DOWNLOAD_FILE "DOWNLOAD_FILE"
@@ -35,6 +36,12 @@ typedef struct file {
   char filename[256];
   time_t last_modified;
 } file_t;
+
+struct thread_info {
+  int newsockfd;
+  char userid[MAXNAME];
+  char *working_directory;
+};
 
 char *read_line(void);
 char **split_args(char *command);

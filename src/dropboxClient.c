@@ -3,7 +3,6 @@
 
 char userid[MAXNAME];
 int client_socket, synch_socket;
-struct list_head file_list;
 
 /* From Assignment Specification
  * Connects the client to the server.
@@ -84,139 +83,6 @@ void close_connection() {
   close(client_socket);
 }
 
-/*
-  Download the files from the server that are missing in the client machine
-*/
-void download_missing_files() {
-  file_t *missing_file;
-  char *sync_dir_path = get_sync_dir(userid);
-  char fullpath[MAXNAME];
-  while (true) {
-    if ((missing_file = is_file_missing(userid, &file_list)) == NULL)
-      break;
-    send_data(DOWNLOAD_FILE, synch_socket,
-              (int)(strlen(DOWNLOAD_FILE) * sizeof(char) + 1));
-    send_data(missing_file->filename, synch_socket,
-              strlen(missing_file->filename) * sizeof(char) + 1);
-
-    strcpy(fullpath, sync_dir_path);
-    strcat(fullpath, "/");
-    strcat(fullpath, missing_file->filename);
-    receive_file_and_save_to_path(synch_socket, fullpath);
-  }
-}
-
-void get_server_file_list() {
-  struct buffer *server_file;
-  file_t *current_file;
-  while (true) {
-    server_file = read_data(synch_socket);
-
-    if (strcmp(FILE_SEND_OVER, server_file->data) == 0)
-      break;
-    current_file = char_to_file_t(server_file->data);
-
-    list_add(&current_file->file_list, &file_list);
-  }
-}
-
-void synch_deleted() {
-  file_t *current_file;
-  if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
-    send_data(DELETE_FILE, synch_socket, strlen(DELETE_FILE) * sizeof(char));
-    send_data(current_file->filename, synch_socket,
-              sizeof(current_file->filename) * sizeof(char) + 1);
-
-    list_del(&current_file->file_list);
-  }
-}
-
-bool updated_existing_file(char *fullpath, struct dirent *ent) {
-  file_t *current_file;
-  struct stat file_stat;
-  char *file_buffer;
-  if ((current_file = file_list_search(&file_list, ent->d_name)) != NULL) {
-    stat(fullpath, &file_stat);
-    if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
-      send_data(SENDING_FILE, synch_socket,
-                strlen(SENDING_FILE) * sizeof(char) + 1);
-
-      current_file->last_modified = file_stat.st_mtime;
-      file_buffer = file_t_to_char(current_file);
-      send_data(current_file->filename, synch_socket,
-                strlen(current_file->filename) * sizeof(char) + 1);
-      send_file_from_path(synch_socket, fullpath);
-    }
-    return true;
-  }
-  return false;
-}
-
-bool rename_files(char *fullpath, struct dirent *ent) {
-  file_t *current_file;
-  if ((current_file = is_file_missing(userid, &file_list)) != NULL) {
-    send_data(RENAME_FILE, synch_socket,
-              strlen(DELETE_FILE) * sizeof(char) + 1);
-    send_data(current_file->filename, synch_socket,
-              sizeof(current_file->filename) * sizeof(char));
-
-    list_del(&current_file->file_list);
-    file_list_add(&file_list, fullpath);
-
-    send_data(ent->d_name, synch_socket, strlen(ent->d_name) * sizeof(char));
-    send_file_from_path(synch_socket, fullpath);
-    return true;
-  }
-  return false;
-}
-
-void *synch_thread() {
-  DIR *dir;
-  struct dirent *ent;
-  char *sync_dir_path = get_sync_dir(userid);
-  char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
-  INIT_LIST_HEAD(&file_list);
-
-  // tell the server to create a thread to synchronize with this one
-  send_data(CREATE_SYNCH_THREAD, synch_socket,
-            strlen(CREATE_SYNCH_THREAD) * sizeof(char));
-  // send the userid for the new server thread
-  send_data(userid, synch_socket, strlen(userid) * sizeof(char));
-
-  get_server_file_list();
-
-  download_missing_files();
-
-  do {
-    synch_deleted();
-
-    dir = opendir(sync_dir_path);
-    while ((ent = readdir(dir)) != NULL) {
-      bool updated = false;
-      bool renamed = false;
-      strcpy(fullpath, sync_dir_path);
-      strcat(fullpath, ent->d_name);
-
-      if (!is_a_file(ent->d_name))
-        continue;
-
-      updated = updated_existing_file(fullpath, ent);
-      renamed = rename_files(fullpath, ent);
-      if (!renamed && !updated) {
-        file_list_add(&file_list, fullpath);
-        send_data(SENDING_FILE, synch_socket,
-                  strlen(SENDING_FILE) * sizeof(char) + 1);
-        send_data(ent->d_name, synch_socket,
-                  strlen(ent->d_name) * sizeof(char) + 1);
-        send_file_from_path(synch_socket, fullpath);
-        //  printf("ENVIOU O arq\n" );
-      }
-    }
-    closedir(dir);
-    sleep(5);
-  } while (true);
-}
-
 void get_all_files(char *sync_dir_path) {
   char fullpath[256];
   struct buffer *filename;
@@ -248,7 +114,17 @@ void start_sync_service(char *host, int port) {
     get_all_files(sync_dir_path);
   }
   closedir(sync_dir);
-  pthread_create(&th, NULL, synch_thread, NULL);
+
+  // tell the server to create a thread to synchronize with this one
+  send_data(CREATE_SYNCH_THREAD, synch_socket,
+            strlen(CREATE_SYNCH_THREAD) * sizeof(char));
+  // send the userid for the new server thread
+  send_data(userid, synch_socket, strlen(userid) * sizeof(char));
+  struct thread_info *ti = malloc(sizeof(struct thread_info));
+  strcpy(ti->userid, userid);
+  ti->working_directory = sync_dir_path;
+  ti->newsockfd = synch_socket;
+  pthread_create(&th, NULL, synch_listen, ti);
 }
 
 int main(int argc, char *argv[]) {

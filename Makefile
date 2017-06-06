@@ -19,7 +19,7 @@ all: dropboxServer dropboxClient
 #	ar crs libcthread.a $(BIN_DIR)dropboxClient.o $(BIN_DIR)dropboxClient.o
 #	mv libdropbox.a $(LIB_DIR)
 dropboxClient:
-	$(CC) -g -o dropboxClient $(SRC_DIR)dropboxClient.c $(SRC_DIR)dropboxUtil.c $(SRC_DIR)dropboxSharedSocket.c $(SRC_DIR)dropboxClientCommandHandler.c $(SRC_DIR)dropboxClientUI.c -Iinclude -lpthread -Wall
+	$(CC) -g -o dropboxClient $(SRC_DIR)dropboxClient.c $(SRC_DIR)dropboxUtil.c $(SRC_DIR)dropboxSharedSocket.c $(SRC_DIR)dropboxClientCommandHandler.c $(SRC_DIR)dropboxClientUI.c $(SRC_DIR)dropboxSynch.c -Iinclude -lpthread -Wall
 #	mv ./dropboxClient.o $(BIN_DIR)
 
 dropboxServer:
