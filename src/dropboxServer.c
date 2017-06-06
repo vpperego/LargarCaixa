@@ -163,16 +163,15 @@ void *client_thread(void *thread_info) {
 
   int session_id = ti->newsockfd;
 
-  if (client_open_session(client, session_id) == false) {
+  if (!client_open_session(client, session_id)) {
     printf("%s já está usando todos os devices.\n", client->userid);
-    // reached the max number of sessions
-    // should we put it to wait? something like semaphore?
-    // or just kick it off?
+    send_data(CONNECTION_FAIL, ti->newsockfd, sizeof(CONNECTION_FAIL));
     close(ti->newsockfd);
     pthread_exit(NULL);
     return NULL;
   }
 
+  send_data(CONNECTION_OK, ti->newsockfd, sizeof(CONNECTION_OK));
   while (true) {
     // read command from client
     printf("ESPERANDO COMANDO\n");

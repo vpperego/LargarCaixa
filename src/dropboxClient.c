@@ -38,6 +38,7 @@ int connect_server(char *host, int port) {
   char buffer[256];
   strcpy(buffer, userid);
 
+
   // send userid to server
   //  send_data(userid, sockfd, (int)(strlen(userid) * sizeof(char)));
 
@@ -180,7 +181,7 @@ void *synch_thread() {
   send_data(CREATE_SYNCH_THREAD, synch_socket,
             strlen(CREATE_SYNCH_THREAD) * sizeof(char));
   // send the userid for the new server thread
-  send_data(userid, synch_socket, (int)(strlen(userid) * sizeof(char)));
+  send_data(userid, synch_socket, strlen(userid) * sizeof(char));
 
   get_server_file_list();
 
@@ -259,10 +260,17 @@ int main(int argc, char *argv[]) {
   strcpy(userid, argv[1]);
   client_socket = connect_server(argv[2], atoi(argv[3]));
   // send userid to server
-  send_data(userid, client_socket, (int)(strlen(userid) * sizeof(char)));
+  send_data(userid, client_socket, strlen(userid) * sizeof(char));
+  struct buffer *server_response;
+  server_response = read_data(client_socket);
+  if(strcmp(server_response->data, CONNECTION_FAIL) == 0){
+    printf("Numero maximo de conexoes atingido\n");
+    close(client_socket);
+    exit(0);
+  }
 
   start_sync_service(argv[2], atoi(argv[3]));
 
   start_client_interface();
-  pthread_exit(0);
+  exit(0);
 }

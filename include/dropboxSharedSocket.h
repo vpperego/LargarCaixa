@@ -9,6 +9,8 @@
 #ifndef dropboxSharedSocket_h
 #define dropboxSharedSocket_h
 
+#define CONNECTION_OK "CONNECTION_OK"
+#define CONNECTION_FAIL "CONNECTION_FAIL"
 #include "dropboxUtil.h"
 #include <netdb.h>
 #include <netinet/in.h>

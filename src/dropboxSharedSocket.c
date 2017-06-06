@@ -76,7 +76,7 @@ struct buffer *read_data(int newsockfd) {
   int n;
   datasize_t buflen;
   // read data size
-  n = (int)read(newsockfd, (char *)&buflen, sizeof(buflen));
+  n = read(newsockfd, (char *)&buflen, sizeof(buflen));
   if (n < 0)
     perror("ERROR reading from socket");
   buflen = ntohl(buflen);
@@ -87,7 +87,7 @@ struct buffer *read_data(int newsockfd) {
     n = (int)read(newsockfd, (void *)buffer_data + amount_read,
                   buflen - amount_read);
     amount_read += n;
-    if (n < 1) {
+    if (n < 0) {
       perror("ERROR reading from socket");
       close(newsockfd);
       exit(0);
