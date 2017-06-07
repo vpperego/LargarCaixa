@@ -53,5 +53,5 @@ char *file_t_to_char(file_t *file);
 file_t *char_to_file_t(char *file);
 void file_list_remove(struct list_head *file_list, char *filename);
 file_t *is_file_missing(char *userid, struct list_head *file_list);
-
+char *read_user_name(int newsockfd) ;
 #endif

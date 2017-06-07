@@ -4,70 +4,7 @@
 int readcount = 0, writecount = 0;
 dbsem_t rmutex, wmutex, read_try, list_access;
 
-void update_fullpath(char *fullpath, char *userid, char *filename) {
-  strcpy(fullpath, userid);
-  strcat(fullpath, "/");
-  strcat(fullpath, filename);
-}
-/* From Assignment Specification
- * Synchronizes the directory named "synch_dir_<username>" with the clients
- * synch_dir.
- */
-void *synch_server(void *thread_info) {
-  struct thread_info *ti = (struct thread_info *)thread_info;
-  struct list_head *file_list = malloc(sizeof(file_list));
-  INIT_LIST_HEAD(file_list);
-  char *userid = read_user_name(ti->newsockfd);
-  char *buffer;
-  DIR *dir;
-  struct dirent *ent;
-  file_t *iterator;
-  char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
 
-  // TODO - refactor here, create a function for this
-  if ((dir = opendir(userid)) != NULL) {
-    /* print all the files and directories within directory */
-    while ((ent = readdir(dir)) != NULL) {
-      if (is_a_file(ent->d_name) == true) {
-        strcpy(fullpath, userid);
-        strcat(fullpath, "/");
-        strcat(fullpath, ent->d_name);
-        file_list_add(file_list, fullpath);
-      }
-    }
-  }
-
-  list_for_each_entry(iterator, file_list, file_list) {
-    buffer = file_t_to_char(iterator);
-    send_data(buffer, ti->newsockfd, sizeof(file_t));
-    free(buffer);
-  }
-  send_data(FILE_SEND_OVER, ti->newsockfd,
-            strlen(CREATE_SYNCH_THREAD) * sizeof(char));
-
-  struct buffer *filename, *request;
-  while (true) {
-    // TODO GET THE FILE INFO AND SET IT IN THE LIST
-    request = read_data(ti->newsockfd);
-    filename = read_data(ti->newsockfd);
-    update_fullpath(fullpath, userid, filename->data);
-    //  printf("New fullpath : %s para request %s\n",fullpath,request->data );
-    if (strcmp(RENAME_FILE, request->data) == 0) {
-      file_list_remove(file_list, filename->data);
-      remove(fullpath);                    // delete the file
-      filename = read_data(ti->newsockfd); // get the filename
-      receive_file_and_save_to_path(ti->newsockfd, fullpath);
-    } else if (strcmp(DOWNLOAD_FILE, request->data) == 0) {
-      send_file_from_path(ti->newsockfd, fullpath);
-    } else if (strcmp(DELETE_FILE, request->data) == 0) {
-      file_list_remove(file_list, filename->data);
-      remove(fullpath); // delete the file
-    } else {
-      receive_file_and_save_to_path(ti->newsockfd, fullpath);
-    }
-  }
-  return NULL;
-}
 
 /* From Assignment Specification
  * Receive a file from the client.
@@ -197,12 +134,7 @@ void *client_thread(void *thread_info) {
   return NULL;
 }
 
-char *read_user_name(int newsockfd) {
-  printf("Vai ler username\n");
-  struct buffer *buffer = read_data(newsockfd);
-  printf("Username: %s\n", buffer->data);
-  return buffer->data;
-}
+
 
 /*
  Executes the main socket listen.

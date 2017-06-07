@@ -5,6 +5,8 @@
 #include "dropboxSemaphore.h"
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
+#include "dropboxSynch.h"
+
 #include <dirent.h>
 #include <libgen.h>
 #include <netinet/in.h>
@@ -17,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #define MAXFILES 30
 #define PORT 55000
 #define MAX_SESSIONS 2

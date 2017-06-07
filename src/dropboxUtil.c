@@ -1,4 +1,5 @@
 #include "../include/dropboxUtil.h"
+#include "../include/dropboxSharedSocket.h"
 #include <dirent.h>
 
 char *read_line(void) {
@@ -15,6 +16,13 @@ char *read_line(void) {
   // remove new line char
   buffer[strcspn(buffer, "\n")] = 0;
   return buffer;
+}
+
+char *read_user_name(int newsockfd) {
+//  printf("Vai ler username\n");
+  struct buffer *buffer = read_data(newsockfd);
+//printf("Username: %s\n", buffer->data);
+  return buffer->data;
 }
 
 char **split_args(char *command) {

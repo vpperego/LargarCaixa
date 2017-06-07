@@ -23,7 +23,7 @@ dropboxClient:
 #	mv ./dropboxClient.o $(BIN_DIR)
 
 dropboxServer:
-	$(CC) -g -o dropboxServer $(SRC_DIR)dropboxServer.c $(SRC_DIR)dropboxUtil.c $(SRC_DIR)dropboxSharedSocket.c $(SRC_DIR)dropboxServerCommandHandler.c -Iinclude -lpthread -Wall
+	$(CC) -g -o dropboxServer $(SRC_DIR)dropboxServer.c $(SRC_DIR)dropboxUtil.c $(SRC_DIR)dropboxSharedSocket.c $(SRC_DIR)dropboxServerCommandHandler.c $(SRC_DIR)dropboxSynch.c -Iinclude -lpthread -Wall
 #	mv ./dropboxServer.o $(BIN_DIR)
 #dropboxClient.o:
 #	$(CC) -g -c $(SRC_DIR)dropboxClient.c -Iinclude -Wall
