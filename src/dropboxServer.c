@@ -153,6 +153,7 @@ int main(int argc, char *argv[]) {
   int server_socket = start_server();
   client_list_init();
   server_listen(server_socket);
+  return 0;
 }
 
 void client_list_init() {
@@ -183,7 +184,8 @@ client_t *client_list_search(char *userid) {
 }
 
 bool client_open_session(client_t *client, int device_id) {
-  for (int i = 0; i < MAX_SESSIONS; ++i) {
+  int i;
+	for ( i = 0; i < MAX_SESSIONS; ++i) {
     if (client->devices[i] == DEVICE_FREE) {
       client->devices[i] = device_id;
       client->logged_in = true;
@@ -195,7 +197,8 @@ bool client_open_session(client_t *client, int device_id) {
 }
 
 bool client_close_session(client_t *client, int device_id) {
-  for (int i = 0; i < MAX_SESSIONS; ++i) {
+	int i;
+  for ( i = 0; i < MAX_SESSIONS; ++i) {
     if (client->devices[i] == device_id) {
       client->devices[i] = DEVICE_FREE;
       if (i == MAX_SESSIONS - 1)
