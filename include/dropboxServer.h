@@ -25,12 +25,7 @@
 #define MAX_SESSIONS 2
 #define DEVICE_FREE -1
 
-struct file_info {
-  char name[MAXNAME];
-  char extension[MAXNAME];
-  char last_modified[MAXNAME];
-  int size;
-};
+
 
 typedef struct client {
   struct list_head client_list;

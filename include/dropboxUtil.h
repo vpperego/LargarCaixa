@@ -31,11 +31,15 @@
 typedef uint32_t datasize_t;
 #define SENDING_FILE "SENDING_FILE"
 
-typedef struct file {
+struct file_info {
+  char filename[MAXNAME];
   struct list_head file_list;
-  char filename[256];
+  char extension[MAXNAME];
   time_t last_modified;
-} file_t;
+  int size;
+};
+
+typedef struct file_info file_t;
 
 struct thread_info {
   int newsockfd;
