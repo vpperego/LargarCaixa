@@ -1,9 +1,8 @@
 #include "../include/dropboxServer.h"
 #include "../include/dropboxServerCommandHandler.h"
 
-dbsem_t list_access;
-
-
+dbsem_t list_access_mux;
+dbsem_t open_session_mux;
 
 /* From Assignment Specification
  * Receive a file from the client.
@@ -70,24 +69,27 @@ void *client_thread(void *thread_info) {
   struct buffer *command;
   client_t *client;
 
-  dbsem_wait(&list_access);
+  dbsem_wait(&list_access_mux);
   if ((client = client_list_search(ti->userid)) == NULL) {
     printf("%s não registrado, registrar.\n", ti->userid);
     if ((client = client__list_signup(ti->userid)) == NULL) {
       printf("%s erro ao criar pasta!\n", ti->userid);
     }
   }
-  dbsem_post(&list_access);
+  dbsem_post(&list_access_mux);
 
   int session_id = ti->newsockfd;
 
+  dbsem_wait(&open_session_mux);
   if (!client_open_session(client, session_id)) {
+    dbsem_post(&open_session_mux);
     printf("%s já está usando todos os devices.\n", client->userid);
     send_data(CONNECTION_FAIL, ti->newsockfd, sizeof(CONNECTION_FAIL));
     close(ti->newsockfd);
     pthread_exit(NULL);
     return NULL;
   }
+  dbsem_post(&open_session_mux);
 
   send_data(CONNECTION_OK, ti->newsockfd, sizeof(CONNECTION_OK));
   while (true) {
@@ -157,7 +159,8 @@ int main(int argc, char *argv[]) {
 }
 
 void client_list_init() {
-  dbsem_init(&list_access, 1);
+  dbsem_init(&list_access_mux, 1);
+  dbsem_init(&open_session_mux, 1);
   INIT_LIST_HEAD(&client_list);
 }
 
