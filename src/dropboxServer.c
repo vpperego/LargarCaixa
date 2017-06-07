@@ -1,8 +1,7 @@
 #include "../include/dropboxServer.h"
 #include "../include/dropboxServerCommandHandler.h"
 
-int readcount = 0, writecount = 0;
-dbsem_t rmutex, wmutex, read_try, list_access;
+dbsem_t list_access;
 
 
 
@@ -71,32 +70,14 @@ void *client_thread(void *thread_info) {
   struct buffer *command;
   client_t *client;
 
-  dbsem_wait(&wmutex);
-  writecount++;
-  if (writecount == 1)
-    dbsem_wait(&read_try);
-  dbsem_post(&wmutex);
-
   dbsem_wait(&list_access);
   if ((client = client_list_search(ti->userid)) == NULL) {
     printf("%s não registrado, registrar.\n", ti->userid);
     if ((client = client__list_signup(ti->userid)) == NULL) {
       printf("%s erro ao criar pasta!\n", ti->userid);
-      // error creating registering (mkdir error)
-      // dbsem_post(&list_access); // since the server isnt loading old users at
-      // startup, these lines are commented return NULL;              //
-      // currently we register all users again and the their folder may be
-      // already created
     }
   }
-
   dbsem_post(&list_access);
-
-  dbsem_wait(&wmutex);
-  writecount--;
-  if (writecount == 0)
-    dbsem_post(&read_try);
-  dbsem_post(&wmutex);
 
   int session_id = ti->newsockfd;
 
@@ -175,17 +156,8 @@ int main(int argc, char *argv[]) {
 }
 
 void client_list_init() {
-
-  dbsem_init(&wmutex, 1);
-  dbsem_init(&rmutex, 1);
-  dbsem_init(&read_try, 1);
   dbsem_init(&list_access, 1);
-
-  // if(is_client_list_in_disk()) {
-  //   client_list_fread();
-  // } else {
   INIT_LIST_HEAD(&client_list);
-  // }
 }
 
 client_t *client__list_signup(char *userid) {
