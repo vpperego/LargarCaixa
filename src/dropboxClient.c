@@ -109,8 +109,9 @@ void start_sync_service(char *host, int port) {
   synch_socket = connect_server(host, port);
 
   DIR *sync_dir = opendir(sync_dir_path);
-  if (ENOENT == errno) {
+  if (errno == ENOENT ) {
     mkdir(sync_dir_path, 0777);
+    sync_dir = opendir(sync_dir_path);
     get_all_files(sync_dir_path);
   }
   closedir(sync_dir);
