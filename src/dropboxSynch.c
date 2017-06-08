@@ -1,6 +1,6 @@
 #include "../include/dropboxSynch.h"
 
-void get_server_file_list(int synch_socket,struct list_head *file_list) {
+void get_server_file_list(int synch_socket, struct list_head *file_list) {
   struct buffer *server_file;
   file_t *current_file;
   while (true) {
@@ -17,14 +17,15 @@ void get_server_file_list(int synch_socket,struct list_head *file_list) {
 /*
   Download the files from the server that are missing in the client machine
 */
-void download_missing_files(struct thread_info * ti,struct list_head *file_list) {
+void download_missing_files(struct thread_info *ti,
+                            struct list_head *file_list) {
   file_t *missing_file;
   char *sync_dir_path = get_sync_dir(ti->userid);
   char fullpath[MAXNAME];
   while (true) {
     if ((missing_file = is_file_missing(ti->userid, file_list)) == NULL)
       break;
-    send_data(DOWNLOAD_FILE,ti->newsockfd,
+    send_data(DOWNLOAD_FILE, ti->newsockfd,
               (int)(strlen(DOWNLOAD_FILE) * sizeof(char) + 1));
     send_data(missing_file->filename, ti->newsockfd,
               strlen(missing_file->filename) * sizeof(char) + 1);
@@ -36,7 +37,7 @@ void download_missing_files(struct thread_info * ti,struct list_head *file_list)
   }
 }
 
-void synch_deleted(struct thread_info * ti,struct list_head *file_list) {
+void synch_deleted(struct thread_info *ti, struct list_head *file_list) {
   file_t *current_file;
   if ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
     send_data(DELETE_FILE, ti->newsockfd, strlen(DELETE_FILE) * sizeof(char));
@@ -47,17 +48,18 @@ void synch_deleted(struct thread_info * ti,struct list_head *file_list) {
   }
 }
 
-bool updated_existing_file(char *fullpath, struct dirent *ent,int synch_socket,struct list_head *file_list) {
+bool updated_existing_file(char *fullpath, struct dirent *ent, int synch_socket,
+                           struct list_head *file_list) {
   file_t *current_file;
   struct stat file_stat;
-   if ((current_file = file_list_search(file_list, ent->d_name)) != NULL) {
+  if ((current_file = file_list_search(file_list, ent->d_name)) != NULL) {
     stat(fullpath, &file_stat);
     if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
       send_data(SENDING_FILE, synch_socket,
                 strlen(SENDING_FILE) * sizeof(char) + 1);
 
       current_file->last_modified = file_stat.st_mtime;
-//      char * file_buffer = file_t_to_char(current_file);
+      //      char * file_buffer = file_t_to_char(current_file);
       send_data(current_file->filename, synch_socket,
                 strlen(current_file->filename) * sizeof(char) + 1);
       send_file_from_path(synch_socket, fullpath);
@@ -67,7 +69,8 @@ bool updated_existing_file(char *fullpath, struct dirent *ent,int synch_socket,s
   return false;
 }
 
-bool rename_files(char *fullpath, struct dirent *ent, struct thread_info * ti,struct list_head *file_list) {
+bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
+                  struct list_head *file_list) {
   file_t *current_file;
   if ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
     send_data(RENAME_FILE, ti->newsockfd,
@@ -90,23 +93,22 @@ TODO - remove from the list what's already downloaded
   -don't create file SENDING_FILE
 */
 void *synch_listen(void *thread_info) {
-	struct thread_info *ti = (struct thread_info *)thread_info;
+  struct thread_info *ti = (struct thread_info *)thread_info;
   struct list_head *file_list = malloc(sizeof(file_list));
 
-  printf("Working directory: %s\n",ti->working_directory );
-  printf("userid: %s\n",ti->userid );
-	DIR *dir;
-	struct dirent *ent;
+  printf("Working directory: %s\n", ti->working_directory);
+  printf("userid: %s\n", ti->userid);
+  DIR *dir;
+  struct dirent *ent;
 
-	char *fullpath = malloc(strlen(ti->userid)+MAXNAME+1);
+  char *fullpath = malloc(strlen(ti->userid) + MAXNAME + 1);
   INIT_LIST_HEAD(file_list);
 
+  get_server_file_list(ti->newsockfd, file_list);
 
-  get_server_file_list(ti->newsockfd,file_list);
-
-  download_missing_files(ti,file_list);
+  download_missing_files(ti, file_list);
   do {
-    synch_deleted(ti,file_list);
+    synch_deleted(ti, file_list);
 
     dir = opendir(ti->working_directory);
     while ((ent = readdir(dir)) != NULL) {
@@ -127,7 +129,6 @@ void *synch_listen(void *thread_info) {
         send_data(ent->d_name, ti->newsockfd,
                   strlen(ent->d_name) * sizeof(char) + 1);
         send_file_from_path(ti->newsockfd, fullpath);
-
       }
     }
     closedir(dir);
@@ -140,7 +141,6 @@ void update_fullpath(char *fullpath, char *userid, char *filename) {
   strcat(fullpath, "/");
   strcat(fullpath, filename);
 }
-
 
 /* From Assignment Specification
  * Synchronizes the directory named "synch_dir_<username>" with the clients

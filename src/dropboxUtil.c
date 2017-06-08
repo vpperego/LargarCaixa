@@ -19,9 +19,9 @@ char *read_line(void) {
 }
 
 char *read_user_name(int newsockfd) {
-//  printf("Vai ler username\n");
+  //  printf("Vai ler username\n");
   struct buffer *buffer = read_data(newsockfd);
-//printf("Username: %s\n", buffer->data);
+  // printf("Username: %s\n", buffer->data);
   return buffer->data;
 }
 

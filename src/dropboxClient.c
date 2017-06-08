@@ -37,7 +37,6 @@ int connect_server(char *host, int port) {
   char buffer[256];
   strcpy(buffer, userid);
 
-
   // send userid to server
   //  send_data(userid, sockfd, (int)(strlen(userid) * sizeof(char)));
 
@@ -109,7 +108,7 @@ void start_sync_service(char *host, int port) {
   synch_socket = connect_server(host, port);
 
   DIR *sync_dir = opendir(sync_dir_path);
-  if (errno == ENOENT ) {
+  if (errno == ENOENT) {
     mkdir(sync_dir_path, 0777);
     sync_dir = opendir(sync_dir_path);
     get_all_files(sync_dir_path);
@@ -140,7 +139,7 @@ int main(int argc, char *argv[]) {
   send_data(userid, client_socket, strlen(userid) * sizeof(char));
   struct buffer *server_response;
   server_response = read_data(client_socket);
-  if(strcmp(server_response->data, CONNECTION_FAIL) == 0){
+  if (strcmp(server_response->data, CONNECTION_FAIL) == 0) {
     printf("Numero maximo de conexoes atingido\n");
     close(client_socket);
     exit(0);

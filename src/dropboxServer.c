@@ -65,12 +65,12 @@ void send_all_files(char *userid, int sockfd) {
 }
 
 //@TODO get actual file info and refactor eveything to use this list
-bool add_to_files_list(client_t* client){
+bool add_to_files_list(client_t *client) {
   int i;
   dbsem_wait(&file_list_access_mux);
-  for(i = 0; i < MAXFILES;i++){
-    if(client->files[i].size == 0){//file is empty
-      client->files[i].size = 1;//temp
+  for (i = 0; i < MAXFILES; i++) {
+    if (client->files[i].size == 0) { // file is empty
+      client->files[i].size = 1;      // temp
       break;
     }
   }
@@ -119,7 +119,7 @@ void *client_thread(void *thread_info) {
                      ((struct thread_info *)thread_info)->newsockfd);
     }
     if (strcmp(command->data, "upload") == 0) {
-      if(add_to_files_list(client))
+      if (add_to_files_list(client))
         command_upload(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "list") == 0) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client);
@@ -132,7 +132,6 @@ void *client_thread(void *thread_info) {
   }
   return NULL;
 }
-
 
 /*
  Executes the main socket listen.
@@ -166,7 +165,6 @@ void server_listen(int server_socket) {
   }
 }
 
-
 void client_list_init() {
   dbsem_init(&file_list_access_mux, 1);
   dbsem_init(&list_access_mux, 1);
@@ -198,7 +196,7 @@ client_t *client_list_search(char *userid) {
 
 bool client_open_session(client_t *client, int device_id) {
   int i;
-	for ( i = 0; i < MAX_SESSIONS; ++i) {
+  for (i = 0; i < MAX_SESSIONS; ++i) {
     if (client->devices[i] == DEVICE_FREE) {
       client->devices[i] = device_id;
       client->logged_in = true;
@@ -210,8 +208,8 @@ bool client_open_session(client_t *client, int device_id) {
 }
 
 bool client_close_session(client_t *client, int device_id) {
-	int i;
-  for ( i = 0; i < MAX_SESSIONS; ++i) {
+  int i;
+  for (i = 0; i < MAX_SESSIONS; ++i) {
     if (client->devices[i] == device_id) {
       client->devices[i] = DEVICE_FREE;
       if (i == MAX_SESSIONS - 1)
