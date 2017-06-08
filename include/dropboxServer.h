@@ -6,6 +6,7 @@
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
 #include "dropboxSynch.h"
+#include "dropboxServerCommandHandler.h"
 
 #include <dirent.h>
 #include <libgen.h>

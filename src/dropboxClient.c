@@ -115,11 +115,12 @@ void start_sync_service(char *host, int port) {
   }
   closedir(sync_dir);
 
-  // tell the server to create a thread to synchronize with this one
+//   tell the server to create a thread to synchronize with this one
   send_data(CREATE_SYNCH_THREAD, synch_socket,
             strlen(CREATE_SYNCH_THREAD) * sizeof(char));
   // send the userid for the new server thread
   send_data(userid, synch_socket, strlen(userid) * sizeof(char));
+    
   struct thread_info *ti = malloc(sizeof(struct thread_info));
   strcpy(ti->userid, userid);
   ti->working_directory = sync_dir_path;
