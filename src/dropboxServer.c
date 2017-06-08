@@ -1,4 +1,5 @@
 #include "../include/dropboxServer.h"
+#include "../include/dropboxServerCommandHandler.h"
 
 
 dbsem_t list_access_mux;

@@ -94,8 +94,8 @@ bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
 void *synch_listen(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
     
-    printf("Working directory: %s\n", ti->working_directory);
-    printf("userid: %s\n", ti->userid);
+//    printf("Working directory: %s\n", ti->working_directory);
+//    printf("userid: %s\n", ti->userid);
     DIR *dir;
     struct dirent *ent;
     

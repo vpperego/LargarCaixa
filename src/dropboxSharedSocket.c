@@ -16,7 +16,7 @@ void send_file_from_path(int socket, char *path) {
       }
 
       /* Allocate our buffer to that size. */
-      source = malloc(sizeof(char) * (bufsize + 1));
+      source = malloc(sizeof(char) * (bufsize));
 
       /* Go back to the start of the file. */
       if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */
@@ -26,8 +26,6 @@ void send_file_from_path(int socket, char *path) {
       datasize_t newLen = fread(source, sizeof(char), bufsize, fp);
       if (ferror(fp) != 0) {
         fputs("Error reading file", stderr);
-      } else {
-        source[newLen++] = '\0'; /* Just to be safe. */
       }
       send_data(source, socket, (newLen * sizeof(char)));
     }
