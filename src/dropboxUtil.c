@@ -90,7 +90,7 @@ file_t *is_file_missing(char *userid, struct list_head *file_list) {
       }
     }
     if (found == false) {
-      printf("MISSING %s\n", iterator->filename);
+//      printf("MISSING %s\n", iterator->filename);
       return iterator;
     }
   }
