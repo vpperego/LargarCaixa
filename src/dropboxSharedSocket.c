@@ -16,7 +16,7 @@ void send_file_from_path(int socket, char *path) {
       }
 
       /* Allocate our buffer to that size. */
-      source = malloc(sizeof(char) * (bufsize));
+      source = malloc(sizeof(char) * (bufsize + 1));
 
       /* Go back to the start of the file. */
       if (fseek(fp, 0L, SEEK_SET) != 0) { /* Error */
@@ -43,11 +43,13 @@ void receive_file_and_save_to_path(int socket, char *path) {
   fp = fopen(path, "w+");
   if (fp == NULL) {
     perror("ERROR - Failed to open file for writing\n");
+    fclose(fp);
     exit(1);
   }
 
   if (fwrite(data->data, sizeof(char), data->size, fp) != data->size) {
     perror("ERROR - Failed to write bytes to file\n");
+    fclose(fp);
     exit(1);
   }
   fclose(fp);
