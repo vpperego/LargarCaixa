@@ -109,9 +109,9 @@ void *client_thread(void *thread_info) {
   send_data(CONNECTION_OK, ti->newsockfd, sizeof(CONNECTION_OK));
   while (true) {
     // read command from client
-    printf("ESPERANDO COMANDO\n");
+//    printf("ESPERANDO COMANDO\n");
     command = read_data(((struct thread_info *)thread_info)->newsockfd);
-    printf("RECEBEU COMANDO\n");
+//    printf("RECEBEU COMANDO\n");
 
     //@TODO refactor
     if (strcmp(command->data, GET_ALL_FILES) == 0) {
