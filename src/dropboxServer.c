@@ -2,6 +2,7 @@
 #include "../include/dropboxServerCommandHandler.h"
 
 dbsem_t list_access_mux;
+dbsem_t file_list_access_mux;
 dbsem_t open_session_mux;
 
 /* From Assignment Specification
@@ -63,6 +64,20 @@ void send_all_files(char *userid, int sockfd) {
     printf("ERRO EM OPENDIR\n");
 }
 
+//@TODO get actual file info and refactor eveything to use this list
+bool add_to_files_list(client_t* client){
+  int i;
+  dbsem_wait(&file_list_access_mux);
+  for(i = 0; i < MAXFILES;i++){
+    if(client->files[i].size == 0){//file is empty
+      client->files[i].size = 1;//temp
+      break;
+    }
+  }
+  dbsem_post(&file_list_access_mux);
+  return i != MAXFILES;
+}
+
 void *client_thread(void *thread_info) {
 
   struct thread_info *ti = (struct thread_info *)thread_info;
@@ -104,7 +119,8 @@ void *client_thread(void *thread_info) {
                      ((struct thread_info *)thread_info)->newsockfd);
     }
     if (strcmp(command->data, "upload") == 0) {
-      command_upload(((struct thread_info *)thread_info)->newsockfd, client);
+      if(add_to_files_list(client))
+        command_upload(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "list") == 0) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client);
     } else if (strcmp(command->data, "download") == 0) {
@@ -116,7 +132,6 @@ void *client_thread(void *thread_info) {
   }
   return NULL;
 }
-
 
 
 /*
@@ -151,14 +166,9 @@ void server_listen(int server_socket) {
   }
 }
 
-int main(int argc, char *argv[]) {
-  int server_socket = start_server();
-  client_list_init();
-  server_listen(server_socket);
-  return 0;
-}
 
 void client_list_init() {
+  dbsem_init(&file_list_access_mux, 1);
   dbsem_init(&list_access_mux, 1);
   dbsem_init(&open_session_mux, 1);
   INIT_LIST_HEAD(&client_list);
@@ -169,7 +179,7 @@ client_t *client__list_signup(char *userid) {
   strcpy(client->userid, userid);
   client->logged_in = false;
   memset(client->devices, DEVICE_FREE, sizeof(client->devices));
-  memset(client->files, 0, sizeof(client->files));
+  /*memset(client->files, 0, sizeof(client->files));*/
   if (mkdir(client->userid, 0777) < 0) {
     // perror("ERROR MKDIR: ");
     // return NULL;
@@ -213,18 +223,9 @@ bool client_close_session(client_t *client, int device_id) {
   return false;
 }
 
-// bool is_client_list_in_disk() {
-//     if((FILE *dbp = fopen(CLIENTDB_PATH, "r")) == NULL) {
-//       fclose(dbp); return false;
-//     } else  {
-//       fclose(dbp); return true;
-//     }
-// }
-
-// void client_list_fread() {
-//   return;
-// }
-
-// void client_list_fwrite() {
-//   return;
-// }
+int main(int argc, char *argv[]) {
+  int server_socket = start_server();
+  client_list_init();
+  server_listen(server_socket);
+  return 0;
+}

@@ -24,7 +24,6 @@ void command_download(int client_socket, struct client *client) {
 
 void command_upload(int client_socket, struct client *client) {
   printf("Server recebeu comando UPLOAD\n");
-  // do not change this order!
   struct buffer *filename = read_data(client_socket);
   printf("Filename: %s\n", filename->data);
 

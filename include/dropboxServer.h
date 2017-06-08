@@ -20,7 +20,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define MAXFILES 30
+#define MAXFILES 4
 #define PORT 55000
 #define MAX_SESSIONS 2
 #define DEVICE_FREE -1
@@ -50,5 +50,6 @@ client_t *client__list_signup(char *userid);
 client_t *client_list_search(char *userid);
 bool client_open_session(client_t *client, int device_id);
 bool client_close_session(client_t *client, int device_id);
+bool add_to_files_list(client_t* client);
 
 #endif
