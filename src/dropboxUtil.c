@@ -19,9 +19,21 @@ char *read_line(void) {
 }
 
 char *read_user_name(int newsockfd) {
-  //  printf("Vai ler username\n");
+
   struct buffer *buffer = read_data(newsockfd);
-  // printf("Username: %s\n", buffer->data);
+
+/*
+  This is a solution for a "byzantine fault" (a.k.a. I can't solve it) in read_data
+  where the user name  STRING read from the client comes with garbage
+*/
+  if(buffer->size < strlen(buffer->data))
+  {
+    char *real_name = malloc((sizeof(char) * buffer->size));
+    strncpy(real_name,buffer->data,buffer->size);
+    real_name[buffer->size] = '\0';
+    free (buffer);
+    return real_name;
+  }
   return buffer->data;
 }
 

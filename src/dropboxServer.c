@@ -142,10 +142,12 @@ void server_listen(int server_socket) {
   socklen_t clilen;
   struct sockaddr_in cli_addr;
   pthread_t th;
+  char *userid ;
 
   listen(server_socket, 50);
 
   clilen = sizeof(struct sockaddr_in);
+
   // wait for new connections and create a new thread for each client
   printf("Dropbox Server Listening...");
   while (true) {
@@ -153,8 +155,8 @@ void server_listen(int server_socket) {
                             &clilen)) == -1)
       perror("ERROR ACCEPT: ");
     printf("\nAceitou conexão de um socket.\n");
-    char *userid = malloc(sizeof(char) * MAXNAME);
     struct thread_info *thread_info = malloc(sizeof(struct thread_info));
+
     userid = read_user_name(newsockfd);
 
     thread_info->newsockfd = newsockfd;
