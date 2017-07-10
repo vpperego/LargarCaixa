@@ -6,6 +6,7 @@
 #include "dropboxSharedSocket.h"
 #include "dropboxUtil.h"
 #include "dropboxSynch.h"
+#include "dropboxReplicaManager.h"
 
 #include <dirent.h>
 #include <libgen.h>
@@ -19,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #define MAXFILES 4
 #define PORT 55000

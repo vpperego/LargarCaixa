@@ -14,6 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#define SHARED_MEMORY_SIZE 1024
 #define MAXNAME 256
 #define DELETE_FILE "DELETE_FILE"
 #define RENAME_FILE "RENAME_FILE"

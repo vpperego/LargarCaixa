@@ -5,7 +5,7 @@ void get_server_file_list(int synch_socket, struct list_head *file_list) {
     file_t *current_file;
     while (true) {
         server_file = read_data(synch_socket);
-        
+
         if (strcmp(FILE_SEND_OVER, server_file->data) == 0)
             break;
         current_file = char_to_file_t(server_file->data);
@@ -28,7 +28,7 @@ void download_missing_files(struct thread_info *ti,
                   (int)(strlen(DOWNLOAD_FILE) * sizeof(char) + 1));
         send_data(missing_file->filename, ti->newsockfd,
                   strlen(missing_file->filename) * sizeof(char) + 1);
-        
+
         strcpy(fullpath, sync_dir_path);
         strcat(fullpath, "/");
         strcat(fullpath, missing_file->filename);
@@ -42,7 +42,7 @@ void synch_deleted(struct thread_info *ti, struct list_head *file_list) {
         send_data(DELETE_FILE, ti->newsockfd, strlen(DELETE_FILE) * sizeof(char));
         send_data(current_file->filename, ti->newsockfd,
                   sizeof(current_file->filename) * sizeof(char) + 1);
-        
+
         list_del(&current_file->file_list);
     }
 }
@@ -56,7 +56,7 @@ bool updated_existing_file(char *fullpath, struct dirent *ent, int synch_socket,
         if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
             send_data(SENDING_FILE, synch_socket,
                       strlen(SENDING_FILE) * sizeof(char) + 1);
-            
+
             current_file->last_modified = file_stat.st_mtime;
             //      char * file_buffer = file_t_to_char(current_file);
             send_data(current_file->filename, synch_socket,
@@ -76,10 +76,10 @@ bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
                   strlen(DELETE_FILE) * sizeof(char) + 1);
         send_data(current_file->filename, ti->newsockfd,
                   sizeof(current_file->filename) * sizeof(char));
-        
+
         list_del(&current_file->file_list);
         file_list_add(file_list, fullpath);
-        
+
         send_data(ent->d_name, ti->newsockfd, strlen(ent->d_name) * sizeof(char));
         send_file_from_path(ti->newsockfd, fullpath);
         return true;
@@ -93,37 +93,37 @@ bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
  */
 void *synch_listen(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
-    
+
 //    printf("Working directory: %s\n", ti->working_directory);
 //    printf("userid: %s\n", ti->userid);
     DIR *dir;
     struct dirent *ent;
-    
+
     char *fullpath = malloc(strlen(ti->userid) + MAXNAME + 1);
-    
-    
+
+
     do {
         send_data("SEND_FILES", ti->newsockfd,
                   strlen("SEND_FILES") * sizeof(char) + 1);
-        
+
         struct list_head *file_list = malloc(sizeof(file_list));
-        
+
         INIT_LIST_HEAD(file_list);
         get_server_file_list(ti->newsockfd, file_list);
         download_missing_files(ti, file_list);
         synch_deleted(ti, file_list);
         dir = opendir(ti->working_directory);
         while ((ent = readdir(dir)) != NULL) {
-            
+
             bool updated = false;
             bool renamed = false;
             strcpy(fullpath, ti->working_directory);
             strcat(fullpath, ent->d_name);
-            
+
             if (!is_a_file(ent->d_name)) {
                 continue;
             }
-            
+
             updated = updated_existing_file(fullpath, ent, ti->newsockfd, file_list);
             renamed = rename_files(fullpath, ent, ti, file_list);
             if (!renamed && !updated) {
@@ -155,14 +155,15 @@ void update_fullpath(char *fullpath, char *userid, char *filename) {
  */
 void *synch_server(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
-    
+
     char *userid = read_user_name(ti->newsockfd);
+    printf("synch_server do cliente %s\n",userid );
     char *buffer;
     DIR *dir;
     struct dirent *ent;
     file_t *iterator;
     char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
-    
+
     while (true) {
         struct list_head *file_list = malloc(sizeof(file_list));
         INIT_LIST_HEAD(file_list);
@@ -170,7 +171,7 @@ void *synch_server(void *thread_info) {
         if(strcmp("SEND_FILES", sendFiles->data) != 0) {
             continue;
         }
-        
+
         // TODO - refactor here, create a function for this
         if ((dir = opendir(userid)) != NULL) {
             /* print all the files and directories within directory */
@@ -190,7 +191,7 @@ void *synch_server(void *thread_info) {
         }
         send_data(FILE_SEND_OVER, ti->newsockfd,
                   strlen(CREATE_SYNCH_THREAD) * sizeof(char));
-        
+
         struct buffer *filename, *request;
         while (true) {
             // TODO GET THE FILE INFO AND SET IT IN THE LIST
@@ -218,6 +219,6 @@ void *synch_server(void *thread_info) {
         free(file_list);
         closedir(dir);
     }
-    
+
     return NULL;
 }

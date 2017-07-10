@@ -5,6 +5,8 @@
 dbsem_t list_access_mux;
 dbsem_t file_list_access_mux;
 dbsem_t open_session_mux;
+dbsem_t * first_rm_sem;//semaphore for synchronization between server and first rm for reading shared memory
+void * rm_shared_memory;
 
 /* From Assignment Specification
  * Receive a file from the client.
@@ -162,16 +164,48 @@ void server_listen(int server_socket) {
     thread_info->newsockfd = newsockfd;
     strcpy(thread_info->userid, userid);
     if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
-      pthread_create(&th, NULL, synch_server, thread_info);
+    {
+      printf("SEGMENTATION FAULT 1?\n" );
+            printf("SEGMENTATION FAULT 2?\n" );
+      memcpy(rm_shared_memory,(void *)thread_info,sizeof(struct thread_info));
+      dbsem_post(first_rm_sem);
+    //  pthread_create(&th, NULL, synch_server, thread_info);
+      printf("SEGMENTATION FAULT 3?\n" );
+    }
     else
       pthread_create(&th, NULL, client_thread, thread_info);
   }
 }
 
+void start_replica_manager(){
+  pid_t first;
+  first_rm_sem = malloc (sizeof(dbsem_t));
+  dbsem_init(first_rm_sem,666,1);
+  // Our memory buffer will be readable and writable:
+ int protection = PROT_READ | PROT_WRITE;
+
+ // The buffer will be shared (meaning other processes can access it), but
+ // anonymous (meaning third-party processes cannot obtain an address for it),
+ // so only this process and its children will be able to use it:
+ int visibility = MAP_ANONYMOUS | MAP_SHARED;
+ rm_shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, protection, visibility, 0, 0);
+ memcpy(rm_shared_memory,first_rm_sem,sizeof(dbsem_t));
+ //check if the shared memory creation worked
+ if (rm_shared_memory == MAP_FAILED)
+      perror("ERROR ON CREATING SHARED MEMORY");
+
+  //create first replica manager
+  first = fork();
+  if(first == 0)
+    main_replica_manager(rm_shared_memory, first_rm_sem);
+
+  //TODO - create other rms
+}
+
 void client_list_init() {
-  dbsem_init(&file_list_access_mux, 1);
-  dbsem_init(&list_access_mux, 1);
-  dbsem_init(&open_session_mux, 1);
+  dbsem_init(&file_list_access_mux,0, 1);
+  dbsem_init(&list_access_mux, 0,1);
+  dbsem_init(&open_session_mux, 0,1);
   INIT_LIST_HEAD(&client_list);
 }
 
@@ -227,6 +261,7 @@ bool client_close_session(client_t *client, int device_id) {
 int main(int argc, char *argv[]) {
   int server_socket = start_server();
   client_list_init();
+  start_replica_manager();
   server_listen(server_socket);
   return 0;
 }

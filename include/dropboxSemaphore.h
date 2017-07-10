@@ -1,3 +1,7 @@
+#ifndef __dropboxSemaphore__
+#define __dropboxSemaphore__
+
+
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #else
@@ -15,13 +19,13 @@ typedef struct dbsem {
 #endif
 } dbsem_t;
 
-static inline void dbsem_init(struct dbsem *s, uint32_t value) {
+static inline void dbsem_init(struct dbsem *s,int share_mode ,uint32_t value) {
 #ifdef __APPLE__
   dispatch_semaphore_t *sem = &s->sem;
 
   *sem = dispatch_semaphore_create(value);
 #else
-  sem_init(&s->sem, 0, value);
+  sem_init(&s->sem, share_mode, value);
 #endif
 }
 
@@ -46,3 +50,5 @@ static inline void dbsem_post(struct dbsem *s) {
   sem_post(&s->sem);
 #endif
 }
+
+#endif
