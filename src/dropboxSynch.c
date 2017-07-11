@@ -156,8 +156,9 @@ void update_fullpath(char *fullpath, char *userid, char *filename) {
 void *synch_server(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
 
+    printf("synch_server do cliente" );
     char *userid = read_user_name(ti->newsockfd);
-    printf("synch_server do cliente %s\n",userid );
+    printf("peguei userid" );
     char *buffer;
     DIR *dir;
     struct dirent *ent;
