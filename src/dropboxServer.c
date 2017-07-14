@@ -5,7 +5,7 @@
 dbsem_t list_access_mux;
 dbsem_t file_list_access_mux;
 dbsem_t open_session_mux;
-sem_t * first_rm_sem;//semaphore for synchronization between server and first rm for reading shared memory
+sem_t * first_rm_sem;// (TODO - fix compatibility with apple API to use sem between process)semaphore for synchronization between server and first rm for reading shared memory
 void * rm_shared_memory;
 
 /* From Assignment Specification
@@ -159,7 +159,7 @@ void server_listen(int server_socket) {
       perror("ERROR ACCEPT: ");
     printf("\nAceitou conexão de um socket.\n");
     struct thread_info *thread_info = malloc(sizeof(struct thread_info));
-
+     
     userid = read_user_name(newsockfd);
 
     thread_info->newsockfd = newsockfd;
@@ -167,10 +167,11 @@ void server_listen(int server_socket) {
     if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
     {
 
-            printf("Enviando para RM socket %d\n",thread_info->newsockfd );
-      memcpy(rm_shared_memory,&thread_info->newsockfd,sizeof(thread_info->newsockfd));
-      sem_post(first_rm_sem);
-    //  pthread_create(&th, NULL, synch_server, thread_info);
+  //    printf("Enviando para RM socket %d\n",thread_info->newsockfd );
+      //memcpy(rm_shared_memory,&thread_info->newsockfd,sizeof(thread_info->newsockfd));
+      //sem_post(first_rm_sem);
+
+       pthread_create(&th, NULL, synch_server, thread_info);
 
     }
     else

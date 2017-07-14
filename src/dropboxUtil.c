@@ -19,8 +19,7 @@ char *read_line(void) {
 }
 
 char *read_user_name(int newsockfd) {
-
-  struct buffer *buffer = read_data(newsockfd);
+   struct buffer *buffer = read_data(newsockfd);
 
 /*
   This is a solution for a "byzantine fault" (a.k.a. I can't solve it) in read_data
@@ -63,6 +62,7 @@ void file_list_remove(struct list_head *file_list, char *filename) {
   list_for_each_entry(iterator, file_list,
                       file_list) if (strcmp(iterator->filename, filename) ==
                                      0) {
+                                       printf("ACHOU????\n" );
     list_del(&iterator->file_list);
     return;
   }
