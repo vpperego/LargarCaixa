@@ -98,16 +98,17 @@ bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
 }
 bool check_deleted_file(struct thread_info *ti,struct list_head *file_list){
   file_t * current_file;
-
-  if ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
+  bool deleted = false;
+  while ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
+	deleted = true;
     send_data(DELETE_FILE, ti->newsockfd,
               strlen(DELETE_FILE) * sizeof(char) +1 );
     send_data(current_file->filename, ti->newsockfd,
               sizeof(current_file->filename) * sizeof(char));
     list_del(&current_file->file_list);
-    return true;
+     
   }
-  return false;
+  return deleted;
 }
 /*
  TODO - remove from the list what's already downloaded
