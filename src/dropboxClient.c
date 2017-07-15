@@ -106,10 +106,10 @@ void start_sync_service(char *host, int port) {
   pthread_t th;//,th2;
 
   synch_socket = connect_server(host, port);
-//  int synch_server_socket = connect_server(host, port);
-
 
   DIR *sync_dir = opendir(sync_dir_path);
+
+  //creates the synch_dir if it's not created
   if (errno == ENOENT) {
     mkdir(sync_dir_path, 0777);
     sync_dir = opendir(sync_dir_path);
@@ -117,9 +117,6 @@ void start_sync_service(char *host, int port) {
   }
   closedir(sync_dir);
 
-  //   tell the server to create a thread (synch_listen)to synchronize with this one
-//    send_data(CREATE_SYNCH_LISTEN, synch_server_socket,
-//              strlen(CREATE_SYNCH_LISTEN) * sizeof(char));
 //   tell the server to create a thread (synch_server) to synchronize with this one
   send_data(CREATE_SYNCH_THREAD, synch_socket,
             strlen(CREATE_SYNCH_THREAD) * sizeof(char));
@@ -133,13 +130,6 @@ void start_sync_service(char *host, int port) {
   ti->isServer = false;
   pthread_create(&th, NULL, synch_listen, ti);
 
-  /*struct thread_info *ti_synch2 = malloc(sizeof(struct thread_info));
-  strcpy(ti_synch2->userid, userid);
-  ti_synch2->working_directory = sync_dir_path;
-  ti_synch2->newsockfd = synch_server_socket;
-  ti_synch2->isServer = false;
-  pthread_create(&th2, NULL, synch_server, ti_synch2);
-*/
 }
 
 int main(int argc, char *argv[]) {
