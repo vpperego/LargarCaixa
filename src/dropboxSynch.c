@@ -55,6 +55,19 @@ void update_fullpath(char *fullpath, char *userid, char *filename) {
     strcat(fullpath, filename);
 }
 
+char * check_valid_string(struct buffer *file)
+{
+  char *real_string;
+  if(strlen(file->data) > file->size)
+  {
+      real_string = malloc((sizeof(char) * file->size));
+      strncpy(real_string,file->data,file->size);
+      real_string[file->size] = '\0';
+      free(file);
+   }else
+      real_string = file->data ;
+    return real_string;
+}
 
 void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char * userid,char * fullpath){
   struct buffer *filename, *request;
@@ -63,21 +76,15 @@ void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char *
   while (true) {
      // TODO GET THE FILE INFO AND SET IT IN THE LIST
       request = read_data(ti->newsockfd);
-    if(strlen(request->data) > request->size)
-    {
-         char *real_request = malloc((sizeof(char) * request->size));
-        strncpy(real_request,request->data,request->size);
-        real_request[request->size] = '\0';
-        request->data =real_request;
 
-      }
-    //  printf("REQUEST STRING IS BIGER THAN DATA SIZE\n");
+      request->data = check_valid_string(request);
 
   //  printf("REQUEST:%s\n", request->data);
      if (strcmp(CHECK_DONE, request->data) == 0) {
             break;
        }
      filename = read_data(ti->newsockfd);
+     filename->data = check_valid_string(filename);
      if(ti->isServer==false)
      {
        strcpy(fullpath, ti->working_directory);
@@ -124,7 +131,7 @@ void check_changes(struct thread_info *ti, struct list_head *file_list,char *ful
 
   DIR * dir = opendir(ti->working_directory);
   struct dirent *ent;
-  print_file_list(file_list);
+  //print_file_list(file_list);
   bool deleted = check_deleted_file (ti,file_list);
   while ((ent = readdir(dir)) != NULL) {
       if (!is_a_file(ent->d_name)) {
