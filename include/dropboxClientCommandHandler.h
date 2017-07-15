@@ -17,11 +17,11 @@
 
 #define FUNCTION_COUNT 5
 
-bool command_download(char **args);
-bool command_upload(char **args);
-bool command_list(char **args);
-bool command_get_sync_dir(char **args);
-bool command_exit(char **args);
-bool execute_command(char **args);
+bool command_download(char **args, SSL* ssl);
+bool command_upload(char **args, SSL* ssl);
+bool command_list(char **args, SSL* ssl);
+bool command_get_sync_dir(char **args, SSL* ssl);
+bool command_exit(char **args, SSL* ssl);
+bool execute_command(char **args, SSL* ssl);
 
 #endif

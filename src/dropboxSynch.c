@@ -1,10 +1,10 @@
 #include "../include/dropboxSynch.h"
 
-void get_server_file_list(int synch_socket, struct list_head *file_list) {
+void get_server_file_list(int synch_socket, struct list_head *file_list, SSL *ssl) {
     struct buffer *server_file;
     file_t *current_file;
     while (true) {
-        server_file = read_data(synch_socket);
+        server_file = read_data(synch_socket, ssl);
 
         if (strcmp(FILE_SEND_OVER, server_file->data) == 0)
             break;
@@ -25,14 +25,14 @@ void download_missing_files(struct thread_info *ti,
         if ((missing_file = is_file_missing(ti->userid, file_list)) == NULL)
             break;
         send_data(DOWNLOAD_FILE, ti->newsockfd,
-                  (int)(strlen(DOWNLOAD_FILE) * sizeof(char) + 1));
+                  (int)(strlen(DOWNLOAD_FILE) * sizeof(char) + 1), ti->ssl);
         send_data(missing_file->filename, ti->newsockfd,
-                  strlen(missing_file->filename) * sizeof(char) + 1);
+                  strlen(missing_file->filename) * sizeof(char) + 1, ti->ssl);
 
         strcpy(fullpath, sync_dir_path);
         strcat(fullpath, "/");
         strcat(fullpath, missing_file->filename);
-        receive_file_and_save_to_path(ti->newsockfd, fullpath);
+        receive_file_and_save_to_path(ti->newsockfd, fullpath, ti->ssl);
     }
 }
 
@@ -43,29 +43,29 @@ void download_missing_files(struct thread_info *ti,
 void synch_deleted(struct thread_info *ti, struct list_head *file_list) {
     file_t *current_file;
     if ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
-        send_data(DELETE_FILE, ti->newsockfd, strlen(DELETE_FILE) * sizeof(char));
+        send_data(DELETE_FILE, ti->newsockfd, strlen(DELETE_FILE) * sizeof(char), ti->ssl);
         send_data(current_file->filename, ti->newsockfd,
-                  sizeof(current_file->filename) * sizeof(char) + 1);
+                  sizeof(current_file->filename) * sizeof(char) + 1, ti->ssl);
 
         list_del(&current_file->file_list);
     }
 }
 
 bool updated_existing_file(char *fullpath, struct dirent *ent, int synch_socket,
-                           struct list_head *file_list) {
+                           struct list_head *file_list, SSL *ssl) {
     file_t *current_file;
     struct stat file_stat;
     if ((current_file = file_list_search(file_list, ent->d_name)) != NULL) {
         stat(fullpath, &file_stat);
         if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
             send_data(SENDING_FILE, synch_socket,
-                      strlen(SENDING_FILE) * sizeof(char) + 1);
+                      strlen(SENDING_FILE) * sizeof(char) + 1, ssl);
 
             current_file->last_modified = file_stat.st_mtime;
             //      char * file_buffer = file_t_to_char(current_file);
             send_data(current_file->filename, synch_socket,
-                      strlen(current_file->filename) * sizeof(char) + 1);
-            send_file_from_path(synch_socket, fullpath);
+                      strlen(current_file->filename) * sizeof(char) + 1, ssl);
+            send_file_from_path(synch_socket, fullpath, ssl);
         }
         return true;
     }
@@ -83,9 +83,9 @@ bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
     if ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
       printf("DELETE_FILE %s\n", current_file->filename);
         send_data(DELETE_FILE, ti->newsockfd,
-                  strlen(DELETE_FILE) * sizeof(char) );
+                  strlen(DELETE_FILE) * sizeof(char), ti->ssl );
         send_data(current_file->filename, ti->newsockfd,
-                  sizeof(current_file->filename) * sizeof(char));
+                  sizeof(current_file->filename) * sizeof(char), ti->ssl);
 
         list_del(&current_file->file_list);
       //  file_list_add(file_list, fullpath);
@@ -102,9 +102,9 @@ bool check_deleted_file(struct thread_info *ti,struct list_head *file_list){
   while ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
 	deleted = true;
     send_data(DELETE_FILE, ti->newsockfd,
-              strlen(DELETE_FILE) * sizeof(char) +1 );
+              strlen(DELETE_FILE) * sizeof(char) +1, ti->ssl );
     send_data(current_file->filename, ti->newsockfd,
-              sizeof(current_file->filename) * sizeof(char));
+              sizeof(current_file->filename) * sizeof(char), ti->ssl);
     list_del(&current_file->file_list);
      
   }
@@ -128,7 +128,7 @@ void *synch_listen(void *thread_info) {
     struct list_head *file_list = malloc(sizeof(file_list));
 
     INIT_LIST_HEAD(file_list);
-    get_server_file_list(ti->newsockfd, file_list);
+    get_server_file_list(ti->newsockfd, file_list, ti->ssl);
     download_missing_files(ti, file_list);
 
     do {
@@ -146,14 +146,14 @@ void *synch_listen(void *thread_info) {
           //  synch_deleted(ti, file_list);
             printf("Arquivo %s\n", ent->d_name);
         //    renamed =  rename_files(fullpath, ent, ti, file_list);
-            deleted = updated_existing_file(fullpath, ent, ti->newsockfd, file_list);
+            deleted = updated_existing_file(fullpath, ent, ti->newsockfd, file_list, ti->ssl);
             if (!deleted && !updated) {
                 file_list_add(file_list, fullpath);
                 send_data(SENDING_FILE, ti->newsockfd,
-                          strlen(SENDING_FILE) * sizeof(char) + 1);
+                          strlen(SENDING_FILE) * sizeof(char) + 1, ti->ssl);
                 send_data(ent->d_name, ti->newsockfd,
-                          strlen(ent->d_name) * sizeof(char) + 1);
-                send_file_from_path(ti->newsockfd, fullpath);
+                          strlen(ent->d_name) * sizeof(char) + 1, ti->ssl);
+                send_file_from_path(ti->newsockfd, fullpath, ti->ssl);
             }
         }
 
@@ -192,16 +192,16 @@ struct list_head *  create_server_file_list(char * userid){
 /*
   Send the server file list from synch_server to synch_listen
 */
-void send_server_file_list(struct list_head *file_list,int newsockfd){
+void send_server_file_list(struct list_head *file_list,int newsockfd, SSL *ssl){
   char *buffer;
   file_t *iterator;
   list_for_each_entry(iterator, file_list, file_list) {
       buffer = file_t_to_char(iterator);
-      send_data(buffer,newsockfd, sizeof(file_t));
+      send_data(buffer,newsockfd, sizeof(file_t), ssl);
       free(buffer);
   }
   send_data(FILE_SEND_OVER, newsockfd,
-            strlen(CREATE_SYNCH_THREAD) * sizeof(char));
+            strlen(CREATE_SYNCH_THREAD) * sizeof(char), ssl);
 }
 
 void update_fullpath(char *fullpath, char *userid, char *filename) {
@@ -217,23 +217,23 @@ void update_fullpath(char *fullpath, char *userid, char *filename) {
 void *synch_server(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
 
-    char *userid = read_user_name(ti->newsockfd);
+    char *userid = read_user_name(ti->newsockfd, ti->ssl);
       char fullpath[MAXNAME]; // TODO - FIX THIS SIZE
       struct buffer *filename, *request;
 
 //    if(strcmp("SEND_FILES", sendFiles->data) != 0) {
       struct list_head *file_list = create_server_file_list(userid);
 
-      send_server_file_list(file_list,ti->newsockfd);
+      send_server_file_list(file_list,ti->newsockfd, ti->ssl);
 
         while (true) {
              // TODO GET THE FILE INFO AND SET IT IN THE LIST
-            request = read_data(ti->newsockfd);
+            request = read_data(ti->newsockfd, ti->ssl);
         //    if (strcmp("DONE", request->data) == 0) {
       ///          break;
       //      }
           //  printf("REQUEST:%s\n", request->data);
-             filename = read_data(ti->newsockfd);
+             filename = read_data(ti->newsockfd, ti->ssl);
             update_fullpath(fullpath, userid, filename->data);
             //  printf("New fullpath : %s para request %s\n",fullpath,request->data );
             if (strcmp(RENAME_FILE, request->data) == 0) {
@@ -242,17 +242,17 @@ void *synch_server(void *thread_info) {
               remove(fullpath);
                 file_list_remove(file_list, filename->data);
 
-               filename = read_data(ti->newsockfd); // get the filename
-                receive_file_and_save_to_path(ti->newsockfd, fullpath);
+               filename = read_data(ti->newsockfd, ti->ssl); // get the filename
+                receive_file_and_save_to_path(ti->newsockfd, fullpath, ti->ssl);
             } else if (strcmp(DOWNLOAD_FILE, request->data) == 0) {
         //      printf("DOWNLOAD_FILE %s\n",filename->data );
-                send_file_from_path(ti->newsockfd, fullpath);
+                send_file_from_path(ti->newsockfd, fullpath, ti->ssl);
             } else if (strcmp(DELETE_FILE, request->data) == 0) {
         //      printf("DELETE FILE %s\n", filename->data );
                 file_list_remove(file_list, filename->data);
                 remove(fullpath); // delete the file
             } else {
-                receive_file_and_save_to_path(ti->newsockfd, fullpath);
+                receive_file_and_save_to_path(ti->newsockfd, fullpath, ti->ssl);
             }
         }
 

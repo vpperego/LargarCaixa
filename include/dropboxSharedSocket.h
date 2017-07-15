@@ -16,6 +16,8 @@
 #include <netinet/in.h>
 #include <pwd.h>
 #include <stdio.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -28,9 +30,9 @@ struct buffer {
   datasize_t size;
 };
 
-void send_file_from_path(int socket, char *path);
-void receive_file_and_save_to_path(int socket, char *path);
-void send_data(char *data, int sockfd, datasize_t datalen);
-struct buffer *read_data(int newsockfd);
+void send_file_from_path(int socket, char *path, SSL * ssl );
+void receive_file_and_save_to_path(int socket, char *path, SSL * ssl);
+void send_data(char *data, int sockfd, datasize_t datalen, SSL * ssl);
+struct buffer *read_data(int newsockfd, SSL * ssl);
 
 #endif /* dropboxSharedSocket_h */

@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #define CLIENT_ARGUMENTS 4
 #define MAXFILES 256
@@ -27,6 +29,8 @@ extern int client_socket;
 
 int connect_server(char *host, int port);
 void sync_client();
+void printSSLCert();
+void startSSL();
 void send_file(char *file);
 void get_file(char *file);
 void close_connection();

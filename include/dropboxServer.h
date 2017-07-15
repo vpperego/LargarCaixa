@@ -9,6 +9,9 @@
 #include "dropboxReplicaManager.h"
 
 #include <dirent.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/bio.h>
 #include <libgen.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -43,7 +46,9 @@ void *sync_server();
 void *client_thread(void *thread_info);
 void receive_file(char *file);
 void send_file(char *file);
-char *read_user_name(int newsockfd);
+void ShutdownSSL();
+void startSSL();
+char *read_user_name(int newsockfd, SSL * ssl);
 void server_listen(int server_socket);
 
 struct list_head client_list;

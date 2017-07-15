@@ -3,6 +3,7 @@
 
 #include "dropboxSynch.h"
 #include "dropboxSemaphore.h"
+#include <semaphore.h>
 
 
 

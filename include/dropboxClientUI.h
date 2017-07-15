@@ -6,6 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void start_client_interface();
+void start_client_interface(SSL * ssl);
 
 #endif

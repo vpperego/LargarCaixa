@@ -1,6 +1,6 @@
 #include "../include/dropboxSharedSocket.h"
 
-void send_file_from_path(int socket, char *path) {
+void send_file_from_path(int socket, char *path, SSL * ssl) {
   char *source = NULL;
   FILE *fp = NULL;
   if ((fp = fopen(path, "r")) == NULL) {
@@ -27,15 +27,15 @@ void send_file_from_path(int socket, char *path) {
       if (ferror(fp) != 0) {
         fputs("Error reading file", stderr);
       }
-      send_data(source, socket, (newLen * sizeof(char)));
+      send_data(source, socket, (newLen * sizeof(char)), ssl);
     }
     fclose(fp);
   }
   free(source);
 }
 
-void receive_file_and_save_to_path(int socket, char *path) {
-  struct buffer *data = read_data(socket);
+void receive_file_and_save_to_path(int socket, char *path, SSL * ssl) {
+  struct buffer *data = read_data(socket, ssl);
   /*printf("Data size: %zi\n", data->size);*/
   /*printf("Data: %s\n", data->data);*/
   FILE *fp;
@@ -56,15 +56,15 @@ void receive_file_and_save_to_path(int socket, char *path) {
 }
 
 // send data with file size
-void send_data(char *data, int sockfd, datasize_t datalen) {
+void send_data(char *data, int sockfd, datasize_t datalen, SSL * ssl) {
   int n;
   datasize_t tmp = htonl(datalen);
-  if ((n = (int)write(sockfd, (void *)&tmp, sizeof(tmp))) < 0) {
+  if ((n = (int)SSL_write(ssl, (void *)&tmp, sizeof(tmp))) < 0) {
     perror("ERROR writing to socket: ");
     close(sockfd);
     exit(0);
   }
-  if ((n = (int)write(sockfd, data, datalen)) < 0) {
+  if ((n = (int)SSL_write(ssl, data, datalen)) < 0) {
     perror("ERROR writing to socket: ");
     close(sockfd);
     exit(0);
@@ -72,11 +72,11 @@ void send_data(char *data, int sockfd, datasize_t datalen) {
 }
 
 // read data from client given the protocol '[datasize_t size][data size bytes]'
-struct buffer *read_data(int newsockfd) {
+struct buffer *read_data(int newsockfd, SSL * ssl) {
   int n;
   datasize_t buflen;
   // read data size
-  n = read(newsockfd, (char *)&buflen, sizeof(buflen));
+  n = SSL_read(ssl, (char *)&buflen, sizeof(buflen));
   if (n < 0)
     perror("ERROR reading from socket");
   buflen = ntohl(buflen);
@@ -84,7 +84,7 @@ struct buffer *read_data(int newsockfd) {
   datasize_t amount_read = 0;
   // keep reading data until size is reached
   while (amount_read < buflen) {
-    n = (int)read(newsockfd, (void *)buffer_data + amount_read,
+    n = (int)SSL_read(ssl, (void *)buffer_data + amount_read,
                   buflen - amount_read);
     amount_read += n;
     if (n < 0) {
