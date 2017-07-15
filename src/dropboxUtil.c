@@ -103,9 +103,12 @@ file_t *is_file_missing(char *working_directory, struct list_head *file_list) {
   list_for_each_entry(iterator, file_list, file_list) {
     found = false;
     //printf("SEARCHING: filename %s\n",iterator->filename );
+    dir = opendir(working_directory);
 
     while ((ent = readdir(dir)) != NULL) {
-  //    printf("dir_ent %s filename %s\n",ent->d_name,iterator->filename );
+    //  printf("dir_ent %s filename %s\n",ent->d_name,iterator->filename );
+    //  printf("dir_ent(size): %d filename(size): %d\n",strlen(ent->d_name),strlen(iterator->filename) );
+
       if (strcmp(ent->d_name, iterator->filename) == 0) {
         found = true;
         break;
@@ -116,8 +119,9 @@ file_t *is_file_missing(char *working_directory, struct list_head *file_list) {
       closedir(dir);
       return iterator;
     }
+    closedir(dir);
+
   }
-  closedir(dir);
   return NULL;
 }
 

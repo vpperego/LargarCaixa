@@ -63,8 +63,7 @@ char * check_valid_string(struct buffer *file)
       real_string = malloc((sizeof(char) * file->size));
       strncpy(real_string,file->data,file->size);
       real_string[file->size] = '\0';
-      free(file);
-   }else
+    }else
       real_string = file->data ;
     return real_string;
 }
@@ -74,7 +73,7 @@ void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char *
 
 
   while (true) {
-     // TODO GET THE FILE INFO AND SET IT IN THE LIST
+
       request = read_data(ti->newsockfd);
 
       request->data = check_valid_string(request);
@@ -131,7 +130,8 @@ void check_changes(struct thread_info *ti, struct list_head *file_list,char *ful
 
   DIR * dir = opendir(ti->working_directory);
   struct dirent *ent;
-  //print_file_list(file_list);
+  // print_file_list(file_list);
+
   bool deleted = check_deleted_file (ti,file_list);
   while ((ent = readdir(dir)) != NULL) {
       if (!is_a_file(ent->d_name)) {
@@ -312,7 +312,7 @@ void *synch_listen(void *thread_info) {
       listen_changes(ti, file_list,ti->userid, fullpath);
       //  closedir(dir);
         //free(file_list);
-        // sleep(5);
+        sleep(5);
     } while (true);
 }
 
@@ -413,7 +413,8 @@ void *synch_server(void *thread_info) {
             */
             listen_changes(ti, file_list,ti->userid, fullpath);
             check_changes(ti,file_list,fullpath);
-        }
+            sleep(10);
+                  }
 
 
     return NULL;
