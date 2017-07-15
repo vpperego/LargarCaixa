@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -49,7 +51,7 @@ struct thread_info {
   char userid[MAXNAME];
   char *working_directory;
   bool isServer;
-
+  SSL * ssl;
 };
 
 char *read_line(void);
@@ -62,5 +64,5 @@ char *file_t_to_char(file_t *file);
 file_t *char_to_file_t(char *file);
 void file_list_remove(struct list_head *file_list, char *filename);
 file_t *is_file_missing(char *working_directory, struct list_head *file_list);
-char *read_user_name(int newsockfd) ;
+char *read_user_name(int newsockfd, SSL * ssl) ;
 #endif

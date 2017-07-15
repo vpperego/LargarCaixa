@@ -2,6 +2,7 @@
 #include "../include/dropboxServerCommandHandler.h"
 #include <semaphore.h>
 
+SSL * ssl;
 dbsem_t list_access_mux;
 dbsem_t file_list_access_mux;
 dbsem_t open_session_mux;
@@ -54,14 +55,14 @@ void send_all_files(char *userid, int sockfd) {
 
       if (is_a_file(ent->d_name)) {
         send_data(ent->d_name, sockfd,
-                  strlen(ent->d_name) * sizeof(char)); // send filename
+                  strlen(ent->d_name) * sizeof(char), ssl); // send filename
         strcpy(filepath, userid);
         strcat(filepath, "/");
         strcat(filepath, ent->d_name);
-        send_file_from_path(sockfd, filepath);
+        send_file_from_path(sockfd, filepath, ssl);
       }
     }
-    send_data(FILE_SEND_OVER, sockfd, strlen(FILE_SEND_OVER) * sizeof(char));
+    send_data(FILE_SEND_OVER, sockfd, strlen(FILE_SEND_OVER) * sizeof(char), ssl);
     closedir(dir);
   } else
     printf("ERRO EM OPENDIR\n");
@@ -103,18 +104,18 @@ void *client_thread(void *thread_info) {
   if (!client_open_session(client, session_id)) {
     dbsem_post(&open_session_mux);
     printf("%s já está usando todos os devices.\n", client->userid);
-    send_data(CONNECTION_FAIL, ti->newsockfd, sizeof(CONNECTION_FAIL));
+    send_data(CONNECTION_FAIL, ti->newsockfd, sizeof(CONNECTION_FAIL), ssl);
     close(ti->newsockfd);
     pthread_exit(NULL);
     return NULL;
   }
   dbsem_post(&open_session_mux);
 
-  send_data(CONNECTION_OK, ti->newsockfd, sizeof(CONNECTION_OK));
+  send_data(CONNECTION_OK, ti->newsockfd, sizeof(CONNECTION_OK), ssl);
   while (true) {
     // read command from client
 //    printf("ESPERANDO COMANDO\n");
-    command = read_data(((struct thread_info *)thread_info)->newsockfd);
+    command = read_data(((struct thread_info *)thread_info)->newsockfd, ssl);
 //    printf("RECEBEU COMANDO\n");
 
     //@TODO refactor
@@ -124,17 +125,40 @@ void *client_thread(void *thread_info) {
     }
     if (strcmp(command->data, "upload") == 0) {
       if (add_to_files_list(client))
-        command_upload(((struct thread_info *)thread_info)->newsockfd, client);
+        command_upload(((struct thread_info *)thread_info)->newsockfd, client, ssl);
     } else if (strcmp(command->data, "list") == 0) {
-      command_list(((struct thread_info *)thread_info)->newsockfd, client);
+      command_list(((struct thread_info *)thread_info)->newsockfd, client, ssl);
     } else if (strcmp(command->data, "download") == 0) {
-      command_download(((struct thread_info *)thread_info)->newsockfd, client);
+      command_download(((struct thread_info *)thread_info)->newsockfd, client, ssl);
     } else if (strcmp(command->data, "exit") == 0) {
       command_exit(((struct thread_info *)thread_info)->newsockfd, client);
     }
     // free(command);//is this right?
   }
   return NULL;
+}
+
+void ShutdownSSL()
+{
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
+}
+
+void startSSL() {
+	const SSL_METHOD *method;
+  SSL_CTX *ctx;
+	OpenSSL_add_all_algorithms();
+  SSL_load_error_strings();
+  SSL_library_init();
+  method	=	SSLv3_server_method();
+  ctx	=	SSL_CTX_new(method);
+  if	(ctx	==	NULL){
+        ERR_print_errors_fp(stderr);
+        abort();
+  }
+  int use_cert = SSL_CTX_use_certificate_file(ctx,	"CertFile.pem",	SSL_FILETYPE_PEM);
+  int use_prv = SSL_CTX_use_PrivateKey_file(ctx,	"KeyFile.pem",	SSL_FILETYPE_PEM);
+  ssl	=	SSL_new(ctx);
 }
 
 /*
@@ -147,22 +171,31 @@ void server_listen(int server_socket) {
   pthread_t th;
   char *userid ;
 
-  listen(server_socket, 50);
-
-  clilen = sizeof(struct sockaddr_in);
-
   // wait for new connections and create a new thread for each client
   printf("Dropbox Server Listening...");
+
+  listen(server_socket, 5);
+
+  clilen = sizeof(struct sockaddr_in);
   while (true) {
     if ((newsockfd = accept(server_socket, (struct sockaddr *)&cli_addr,
                             &clilen)) == -1)
       perror("ERROR ACCEPT: ");
+    startSSL();
+    SSL_set_fd(ssl,	newsockfd);
+    int ssl_err = SSL_accept(ssl);
+    if(ssl_err <= 0)
+    {
+      ShutdownSSL();
+    }
     printf("\nAceitou conexão de um socket.\n");
     struct thread_info *thread_info = malloc(sizeof(struct thread_info));
 
-    userid = read_user_name(newsockfd);
 
+    userid = read_user_name(newsockfd, ssl);
+ 
     thread_info->newsockfd = newsockfd;
+    thread_info->ssl = ssl;
     strcpy(thread_info->userid, userid);
     if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
     {
@@ -273,7 +306,7 @@ bool client_close_session(client_t *client, int device_id) {
 int main(int argc, char *argv[]) {
   int server_socket = start_server();
   client_list_init();
-  start_replica_manager();
+  /*start_replica_manager();*/
   server_listen(server_socket);
   return 0;
 }

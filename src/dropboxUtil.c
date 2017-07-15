@@ -18,8 +18,8 @@ char *read_line(void) {
   return buffer;
 }
 
-char *read_user_name(int newsockfd) {
-   struct buffer *buffer = read_data(newsockfd);
+char *read_user_name(int newsockfd, SSL * ssl) {
+   struct buffer *buffer = read_data(newsockfd, ssl);
 
 /*
   This is a solution for a "byzantine fault" (a.k.a. I can't solve it) in read_data

@@ -6,10 +6,10 @@ void command_exit(int client_socket, struct client *client) {
   pthread_exit(NULL);
 }
 
-void command_download(int client_socket, struct client *client) {
+void command_download(int client_socket, struct client *client, SSL * ssl) {
   printf("Server recebeu comando DOWNLOAD\n");
 
-  struct buffer *filename = read_data(client_socket);
+  struct buffer *filename = read_data(client_socket, ssl);
   printf("Filename: %s\n", filename->data);
 
   char file_path[1024];
@@ -19,12 +19,12 @@ void command_download(int client_socket, struct client *client) {
   bname = basename(filename->data);
   strcat(file_path, bname);
 
-  send_file_from_path(client_socket, file_path);
+  send_file_from_path(client_socket, file_path, ssl);
 }
 
-void command_upload(int client_socket, struct client *client) {
+void command_upload(int client_socket, struct client *client, SSL * ssl) {
   printf("Server recebeu comando UPLOAD\n");
-  struct buffer *filename = read_data(client_socket);
+  struct buffer *filename = read_data(client_socket, ssl);
   printf("Filename: %s\n", filename->data);
 
   char file_path[1024];
@@ -34,10 +34,10 @@ void command_upload(int client_socket, struct client *client) {
   bname = basename(filename->data);
   strcat(file_path, bname);
   // RECEIVE FILE AND SAVE TO PATH
-  receive_file_and_save_to_path(client_socket, file_path);
+  receive_file_and_save_to_path(client_socket, file_path, ssl);
 }
 
-void command_list(int client_socket, struct client *client) {
+void command_list(int client_socket, struct client *client, SSL * ssl) {
   printf("Server recebeu comando LIST\n");
   DIR *dir;
   struct dirent *entry;
@@ -50,10 +50,10 @@ void command_list(int client_socket, struct client *client) {
 
   while ((entry = readdir(dir)) != NULL) {
     if (entry->d_type == DT_REG) {
-      send_data(entry->d_name, client_socket, strlen(entry->d_name) + 1);
+      send_data(entry->d_name, client_socket, strlen(entry->d_name) + 1, ssl);
     }
   }
-  send_data(EO_LIST, client_socket, strlen(EO_LIST));
+  send_data(EO_LIST, client_socket, strlen(EO_LIST), ssl);
 
   if (closedir(dir) < 0) {
     perror("ERROR closedir: ");
