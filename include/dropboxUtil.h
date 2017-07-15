@@ -17,14 +17,16 @@
 #define SHARED_MEMORY_SIZE 1024
 #define MAXNAME 256
 #define DELETE_FILE "DELETE_FILE"
-#define RENAME_FILE "RENAME_FILE"
+#define UPDATE_FILE "UPDATE_FILE"
 #define DOWNLOAD_FILE "DOWNLOAD_FILE"
 #define GET_ALL_FILES "GET_ALL_FILES"
 #define NEW_CONNECTION "NEW_CONNECTION"
 #define SEND_NAME "SEND_NAME"
 #define CREATE_SYNCH_THREAD "CREATE_SYNCH_THREAD"
+#define CREATE_SYNCH_LISTEN "CREATE_SYNCH_LISTEN"
 #define FILE_SEND_OVER "FILE_SEND_OVER"
 #define EO_LIST "*END_OF_LIST_TAG*"
+#define CHECK_DONE "CHECK_DONE"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -46,6 +48,8 @@ struct thread_info {
   int newsockfd;
   char userid[MAXNAME];
   char *working_directory;
+  bool isServer;
+
 };
 
 char *read_line(void);
@@ -57,6 +61,6 @@ bool is_a_file(char *filename);
 char *file_t_to_char(file_t *file);
 file_t *char_to_file_t(char *file);
 void file_list_remove(struct list_head *file_list, char *filename);
-file_t *is_file_missing(char *userid, struct list_head *file_list);
+file_t *is_file_missing(char *working_directory, struct list_head *file_list);
 char *read_user_name(int newsockfd) ;
 #endif

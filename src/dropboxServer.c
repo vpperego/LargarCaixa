@@ -159,7 +159,7 @@ void server_listen(int server_socket) {
       perror("ERROR ACCEPT: ");
     printf("\nAceitou conexão de um socket.\n");
     struct thread_info *thread_info = malloc(sizeof(struct thread_info));
-     
+
     userid = read_user_name(newsockfd);
 
     thread_info->newsockfd = newsockfd;
@@ -170,9 +170,15 @@ void server_listen(int server_socket) {
   //    printf("Enviando para RM socket %d\n",thread_info->newsockfd );
       //memcpy(rm_shared_memory,&thread_info->newsockfd,sizeof(thread_info->newsockfd));
       //sem_post(first_rm_sem);
+        thread_info->isServer = true;
 
        pthread_create(&th, NULL, synch_server, thread_info);
 
+    }else if (strcmp(userid, CREATE_SYNCH_LISTEN) == 0) {
+      thread_info->isServer = true;
+      //thread_info->working_directory = userid;
+      pthread_create(&th, NULL, synch_listen, thread_info);
+      /* code */
     }
     else
       pthread_create(&th, NULL, client_thread, thread_info);

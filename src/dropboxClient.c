@@ -103,9 +103,11 @@ void get_all_files(char *sync_dir_path) {
 */
 void start_sync_service(char *host, int port) {
   char *sync_dir_path = get_sync_dir(userid);
-  pthread_t th;
+  pthread_t th;//,th2;
 
   synch_socket = connect_server(host, port);
+//  int synch_server_socket = connect_server(host, port);
+
 
   DIR *sync_dir = opendir(sync_dir_path);
   if (errno == ENOENT) {
@@ -115,17 +117,29 @@ void start_sync_service(char *host, int port) {
   }
   closedir(sync_dir);
 
-//   tell the server to create a thread to synchronize with this one
+  //   tell the server to create a thread (synch_listen)to synchronize with this one
+//    send_data(CREATE_SYNCH_LISTEN, synch_server_socket,
+//              strlen(CREATE_SYNCH_LISTEN) * sizeof(char));
+//   tell the server to create a thread (synch_server) to synchronize with this one
   send_data(CREATE_SYNCH_THREAD, synch_socket,
             strlen(CREATE_SYNCH_THREAD) * sizeof(char));
   // send the userid for the new server thread
   send_data(userid, synch_socket, strlen(userid) * sizeof(char));
-    
+
   struct thread_info *ti = malloc(sizeof(struct thread_info));
   strcpy(ti->userid, userid);
   ti->working_directory = sync_dir_path;
   ti->newsockfd = synch_socket;
+  ti->isServer = false;
   pthread_create(&th, NULL, synch_listen, ti);
+
+  /*struct thread_info *ti_synch2 = malloc(sizeof(struct thread_info));
+  strcpy(ti_synch2->userid, userid);
+  ti_synch2->working_directory = sync_dir_path;
+  ti_synch2->newsockfd = synch_server_socket;
+  ti_synch2->isServer = false;
+  pthread_create(&th2, NULL, synch_server, ti_synch2);
+*/
 }
 
 int main(int argc, char *argv[]) {
