@@ -2,16 +2,15 @@
 #define __dropboxReplicaManager__
 
 #include "dropboxSynch.h"
-#include "dropboxSemaphore.h"
-#include <semaphore.h>
+#include "dropboxSharedSocket.h"
 
-
-
+#include <sys/socket.h>
 #include <string.h>
 #include <dirent.h>
 #include <pthread.h>
 #include <errno.h>
 
-void main_replica_manager(void * server_shared_memory,sem_t * rm_sem);
+#define RM_PORT 60000
+void main_replica_manager();
 
 #endif

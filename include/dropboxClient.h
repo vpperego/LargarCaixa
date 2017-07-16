@@ -27,7 +27,6 @@
 extern char userid[MAXNAME];
 extern int client_socket;
 
-int connect_server(char *host, int port);
 void sync_client();
 void printSSLCert();
 void startSSL();

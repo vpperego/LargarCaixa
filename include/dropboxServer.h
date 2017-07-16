@@ -26,7 +26,7 @@
 #include <sys/mman.h>
 
 #define MAXFILES 4
-#define PORT 55000
+#define SERVER_PORT 55000
 #define MAX_SESSIONS 2
 #define DEVICE_FREE -1
 

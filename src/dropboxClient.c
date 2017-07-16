@@ -5,84 +5,6 @@ char userid[MAXNAME];
 int client_socket, synch_socket;
 SSL * ssl;
 
-void printSSLCert(){
-  X509 *cert;
-  char *line;
-  cert	=	SSL_get_peer_certificate(ssl);
-  if	(cert	!=	NULL){
-        line =	X509_NAME_oneline(
-              X509_get_subject_name(cert),0,0);
-        printf("Subject:	%s\n",	line);
-        free(line);
-        line	=	X509_NAME_oneline(
-              X509_get_issuer_name(cert),0,0);
-        printf("Issuer:	%s\n",	line);
-  }
-}
-
-void startSSL(){
-	const SSL_METHOD *method;
-  SSL_CTX *ctx;
-	OpenSSL_add_all_algorithms();
-  SSL_load_error_strings();
-  SSL_library_init();
-  method	=	TLSv1_client_method();
-  ctx	=	SSL_CTX_new(method);
-  if	(ctx	==	NULL){
-        ERR_print_errors_fp(stderr);
-        abort();
-  }
-
-  ssl	=	SSL_new(ctx);
-}
-
-/* From Assignment Specification
- * Connects the client to the server.
- * host - server address
- * port - server port
- */
-int connect_server(char *host, int port) {
-  struct hostent *server;
-  struct sockaddr_in serv_addr;
-  int sockfd;
-
-  startSSL();
-
-  if ((server = gethostbyname(host)) == NULL) {
-    perror("ERROR, no such host: ");
-    exit(0);
-  }
-
-  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    perror("ERROR opening socket: ");
-    exit(0);
-  }
-
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(port);
-  serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-  bzero(&(serv_addr.sin_zero), 8);
-
-  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-    perror("ERROR connecting\n");
-    exit(0);
-  }
-  SSL_set_fd(ssl,	sockfd);
-  if	(SSL_connect(ssl)	==	-1) {
-    ERR_print_errors_fp(stderr);
-  }
-  else {
-    printSSLCert();
-
-    char buffer[256];
-    strcpy(buffer, userid);
-
-    // send userid to server
-    //  send_data(userid, sockfd, (int)(strlen(userid) * sizeof(char)));
-  }
-
-  return sockfd;
-}
 
 /* From Assignment Specification
  * Synchronizes the directory named "sync_dir_<username>" with the server.
@@ -146,7 +68,7 @@ void start_sync_service(char *host, int port) {
   char *sync_dir_path = get_sync_dir(userid);
   pthread_t th;
 
-  synch_socket = connect_server(host, port);
+  synch_socket = connect_server(host, port,ssl);
 
   DIR *sync_dir = opendir(sync_dir_path);
   if (errno == ENOENT) {
@@ -178,7 +100,8 @@ int main(int argc, char *argv[]) {
   }
   // save user name
   strcpy(userid, argv[1]);
-  client_socket = connect_server(argv[2], atoi(argv[3]));
+  ssl = startCliSSL();
+  client_socket = connect_server(argv[2], atoi(argv[3]),ssl);
   // send userid to server
   send_data(userid, client_socket, strlen(userid) * sizeof(char), ssl);
   struct buffer *server_response;

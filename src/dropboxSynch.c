@@ -49,19 +49,6 @@ void update_fullpath(char *fullpath, char *userid, char *filename) {
     strcat(fullpath, filename);
 }
 
-char * check_valid_string(struct buffer *file)
-{
-  char *real_string;
-  if(strlen(file->data) > file->size)
-  {
-      real_string = malloc((sizeof(char) * file->size));
-      strncpy(real_string,file->data,file->size);
-      real_string[file->size] = '\0';
-    }else
-      real_string = file->data ;
-    return real_string;
-}
-
 void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char * userid,char * fullpath){
   struct buffer *filename, *request;
 
@@ -328,28 +315,29 @@ void send_server_file_list(struct list_head *file_list,int newsockfd, SSL *ssl){
 void *synch_server(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
 
-       char *userid;
-      char fullpath[255];
-      if(ti->isServer==false){
-          send_data(ti->userid,ti->newsockfd,strlen(ti->userid),ti->ssl);
-  //        printf("useird = %s\n",ti->userid );
-          //strcpy(userid,ti->userid);
-          userid = ti->userid;
-      }else{
-         userid = read_user_name(ti->newsockfd, ti->ssl);
-         strcpy(ti->userid,userid);
-      }
-      ti->working_directory = ti->userid;
+   char *userid;
+   char fullpath[255];
 
-      struct list_head *file_list = create_server_file_list(userid);
+   userid = read_user_name(ti->newsockfd, ti->ssl);
+   strcpy(ti->userid,userid);
 
-      send_server_file_list(file_list,ti->newsockfd, ti->ssl);
+   SSL * rm_ssl = startCliSSL();
 
-      while (true) {
+   int rm_socket = connect_server("localhost", RM_PORT, rm_ssl);
 
-        listen_changes(ti, file_list,ti->userid, fullpath);
-        check_changes(ti,file_list,fullpath);
-        sleep(5);
-      }
-      return NULL;
+   send_data(userid,rm_socket,strlen(userid),rm_ssl);
+
+    ti->working_directory = ti->userid;
+
+    struct list_head *file_list = create_server_file_list(userid);
+
+    send_server_file_list(file_list,ti->newsockfd, ti->ssl);
+
+    while (true) {
+
+      listen_changes(ti, file_list,ti->userid, fullpath);
+      check_changes(ti,file_list,fullpath);
+      sleep(5);
+    }
+    return NULL;
 }

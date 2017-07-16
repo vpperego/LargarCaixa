@@ -1,6 +1,5 @@
 #include "../include/dropboxServer.h"
 #include "../include/dropboxServerCommandHandler.h"
-#include <semaphore.h>
 
 SSL * ssl;
 dbsem_t list_access_mux;
@@ -24,26 +23,7 @@ void send_file(char *file) {}
 /*
  Starts (and returns) the main socket server (i.e., the listen socket)
  */
-int start_server() {
-  int sockfd;
 
-  struct sockaddr_in serv_addr;
-
-  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-    perror("ERROR opening socket");
-
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(PORT);
-  serv_addr.sin_addr.s_addr = INADDR_ANY;
-  bzero(&(serv_addr.sin_zero), 8);
-
-  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
-    perror("setsockopt(SO_REUSEADDR) failed");
-  if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    perror("ERROR on binding");
-
-  return sockfd;
-}
 
 void send_all_files(char *userid, int sockfd) {
   DIR *dir;
@@ -138,28 +118,6 @@ void *client_thread(void *thread_info) {
   return NULL;
 }
 
-void ShutdownSSL()
-{
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
-}
-
-void startSSL() {
-	const SSL_METHOD *method;
-  SSL_CTX *ctx;
-	OpenSSL_add_all_algorithms();
-  SSL_load_error_strings();
-  SSL_library_init();
-  method	=	TLSv1_server_method();
-  ctx	=	SSL_CTX_new(method);
-  if	(ctx	==	NULL){
-        ERR_print_errors_fp(stderr);
-        abort();
-  }
-  int use_cert = SSL_CTX_use_certificate_file(ctx,	"CertFile.pem",	SSL_FILETYPE_PEM);
-  int use_prv = SSL_CTX_use_PrivateKey_file(ctx,	"KeyFile.pem",	SSL_FILETYPE_PEM);
-  ssl	=	SSL_new(ctx);
-}
 
 /*
  Executes the main socket listen.
@@ -181,12 +139,12 @@ void server_listen(int server_socket) {
     if ((newsockfd = accept(server_socket, (struct sockaddr *)&cli_addr,
                             &clilen)) == -1)
       perror("ERROR ACCEPT: ");
-    startSSL();
+    ssl = startServerSSL();
     SSL_set_fd(ssl,	newsockfd);
     int ssl_err = SSL_accept(ssl);
     if(ssl_err <= 0)
     {
-      ShutdownSSL();
+      ShutdownSSL(ssl);
     }
     printf("\nAceitou conexão de um socket.\n");
     struct thread_info *thread_info = malloc(sizeof(struct thread_info));
@@ -215,7 +173,7 @@ void server_listen(int server_socket) {
 void start_replica_manager(){
   pid_t first;
 
-  // Our memory buffer will be readable and writable:
+  /* Our memory buffer will be readable and writable:
  int protection = PROT_READ | PROT_WRITE;
 
  // The buffer will be shared (meaning other processes can access it), but
@@ -232,12 +190,12 @@ void start_replica_manager(){
  //check if the shared memory creation worked
  if (rm_shared_memory == MAP_FAILED)
       perror("ERROR ON CREATING SHARED MEMORY");
-
+*/
   //create first replica manager
   first = fork();
   if(first == 0)
-    main_replica_manager(rm_shared_memory, first_rm_sem);
-
+  //  main_replica_manager(rm_shared_memory, first_rm_sem);
+  main_replica_manager();
   //TODO - create other rms
 }
 
@@ -298,9 +256,9 @@ bool client_close_session(client_t *client, int device_id) {
 }
 
 int main(int argc, char *argv[]) {
-  int server_socket = start_server();
+  int server_socket = start_server(SERVER_PORT);
   client_list_init();
-  /*start_replica_manager();*/
+  start_replica_manager(); 
   server_listen(server_socket);
   return 0;
 }
