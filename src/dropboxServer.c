@@ -150,7 +150,7 @@ void startSSL() {
 	OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
   SSL_library_init();
-  method	=	SSLv3_server_method();
+  method	=	TLSv1_server_method();
   ctx	=	SSL_CTX_new(method);
   if	(ctx	==	NULL){
         ERR_print_errors_fp(stderr);
@@ -202,6 +202,7 @@ void server_listen(int server_socket) {
   //    printf("Enviando para RM socket %d\n",thread_info->newsockfd );
       //memcpy(rm_shared_memory,&thread_info->newsockfd,sizeof(thread_info->newsockfd));
       //sem_post(first_rm_sem);
+      thread_info->isServer = true;
 
        pthread_create(&th, NULL, synch_server, thread_info);
 

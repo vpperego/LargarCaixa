@@ -69,45 +69,48 @@ void file_list_remove(struct list_head *file_list, char *filename) {
 }
 
 /*
-  Searches the sync_dir to see if a file was renamed (the filename is missing on
-the file_list)
-
-file_t * is_file_renamed(struct list_head *file_list,char *filename)
-{
-  file_t *iterator;
-
-  list_for_each_entry(iterator,file_list,file_list)
-    if(strcmp(filename, iterator->filename) == 0)
-      return iterator;
-  return NULL;
-}*/
-
-/*
   Searches the sync_dir to see if a file is missing (i.e., was deleted)
 */
-file_t *is_file_missing(char *userid, struct list_head *file_list) {
-  char *sync_dir_path = get_sync_dir(userid);
+file_t *is_file_missing(char *working_directory, struct list_head *file_list) {
+//  char *sync_dir_path = get_sync_dir(userid);
   DIR *dir;
   struct dirent *ent;
   file_t *iterator;
   bool found;
-  dir = opendir(sync_dir_path);
+  dir = opendir(working_directory);
+  if(dir==NULL)
+  {
+      printf("is_file_missing: can't open dir \n" );
+
+  }
+
+//  printf("is_file_missing IN DIR  %s\n", working_directory);
 
   list_for_each_entry(iterator, file_list, file_list) {
     found = false;
+    //printf("SEARCHING: filename %s\n",iterator->filename );
+    dir = opendir(working_directory);
+
     while ((ent = readdir(dir)) != NULL) {
+    //  printf("dir_ent %s filename %s\n",ent->d_name,iterator->filename );
+    //  printf("dir_ent(size): %d filename(size): %d\n",strlen(ent->d_name),strlen(iterator->filename) );
+
       if (strcmp(ent->d_name, iterator->filename) == 0) {
         found = true;
         break;
       }
     }
     if (found == false) {
-//      printf("MISSING %s\n", iterator->filename);
+  //    printf("MISSING %s tam.\n", iterator->filename);
+      closedir(dir);
       return iterator;
     }
+    closedir(dir);
+
   }
   return NULL;
 }
+
 
 file_t *file_list_search(struct list_head *file_list, char *filename) {
   file_t *iterator;

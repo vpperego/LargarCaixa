@@ -26,7 +26,7 @@ void startSSL(){
 	OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
   SSL_library_init();
-  method	=	SSLv3_client_method();
+  method	=	TLSv1_client_method();
   ctx	=	SSL_CTX_new(method);
   if	(ctx	==	NULL){
         ERR_print_errors_fp(stderr);
@@ -161,11 +161,12 @@ void start_sync_service(char *host, int port) {
             strlen(CREATE_SYNCH_THREAD) * sizeof(char), ssl);
   // send the userid for the new server thread
   send_data(userid, synch_socket, strlen(userid) * sizeof(char), ssl);
-    
+
   struct thread_info *ti = malloc(sizeof(struct thread_info));
   strcpy(ti->userid, userid);
   ti->working_directory = sync_dir_path;
   ti->newsockfd = synch_socket;
+  ti->isServer = false;
   ti->ssl = ssl;
   pthread_create(&th, NULL, synch_listen, ti);
 }

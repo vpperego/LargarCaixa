@@ -19,7 +19,8 @@
 #define SHARED_MEMORY_SIZE 1024
 #define MAXNAME 256
 #define DELETE_FILE "DELETE_FILE"
-#define RENAME_FILE "RENAME_FILE"
+#define CHECK_DONE "CHECK_DONE"
+#define UPDATE_FILE "UPDATE_FILE"
 #define DOWNLOAD_FILE "DOWNLOAD_FILE"
 #define GET_ALL_FILES "GET_ALL_FILES"
 #define NEW_CONNECTION "NEW_CONNECTION"
@@ -48,6 +49,7 @@ struct thread_info {
   int newsockfd;
   char userid[MAXNAME];
   char *working_directory;
+  bool isServer;
   SSL * ssl;
 };
 
@@ -60,6 +62,6 @@ bool is_a_file(char *filename);
 char *file_t_to_char(file_t *file);
 file_t *char_to_file_t(char *file);
 void file_list_remove(struct list_head *file_list, char *filename);
-file_t *is_file_missing(char *userid, struct list_head *file_list);
+file_t *is_file_missing(char *working_directory, struct list_head *file_list);
 char *read_user_name(int newsockfd, SSL * ssl) ;
 #endif
