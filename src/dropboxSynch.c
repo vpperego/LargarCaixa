@@ -162,7 +162,7 @@ void check_changes(struct thread_info *ti, struct list_head *file_list,char *ful
   Execute in the start of synch_listen to get all files from server
 */
 
-void get_server_file_list(int synch_socket, struct list_head *file_list, SSL *ssl) {
+void get_file_list(int synch_socket, struct list_head *file_list, SSL *ssl) {
 
     struct buffer *server_file;
     file_t *current_file;
@@ -219,30 +219,6 @@ void synch_deleted(struct thread_info *ti, struct list_head *file_list) {
     }
 }
 
-/*
-  Search for missing files in the file list and remove them from the list and also remove from the server
-
-*/
-bool rename_files(char *fullpath, struct dirent *ent, struct thread_info *ti,
-                  struct list_head *file_list) {
-    file_t *current_file;
-    if ((current_file = is_file_missing(ti->userid, file_list)) != NULL) {
-
-        send_data(DELETE_FILE, ti->newsockfd,
-                  strlen(DELETE_FILE) * sizeof(char), ti->ssl );
-        send_data(current_file->filename, ti->newsockfd,
-                  sizeof(current_file->filename) * sizeof(char), ti->ssl);
-
-        list_del(&current_file->file_list);
-      //  file_list_add(file_list, fullpath);
-
-      //  send_data(ent->d_name, ti->newsockfd, strlen(ent->d_name) * sizeof(char));
-      //  send_file_from_path(ti->newsockfd, fullpath);
-        return true;
-    }
-    return false;
-}
-
  /*
   Main synch thread executed in client side
  */
@@ -255,7 +231,7 @@ void *synch_listen(void *thread_info) {
     struct list_head *file_list = malloc(sizeof(file_list));
 
        INIT_LIST_HEAD(file_list);
-      get_server_file_list(ti->newsockfd, file_list, ti->ssl);
+      get_file_list(ti->newsockfd, file_list, ti->ssl);
       download_missing_files(ti, file_list);
 
     do {
@@ -266,35 +242,11 @@ void *synch_listen(void *thread_info) {
      } while (true);
 }
 
-/*
-  Creates the file_list of @userid for synch_server
-*/
-struct list_head *  create_server_file_list(char * userid){
-  struct list_head *file_list = malloc(sizeof(file_list));
-  DIR *dir;
-  struct dirent *ent;
-    char fullpath[MAXNAME];
-  INIT_LIST_HEAD(file_list);
-//  struct buffer *sendFiles = read_data(ti->newsockfd);
-  if ((dir = opendir(userid)) != NULL) {
-      /* print all the files and directories within directory */
-      while ((ent = readdir(dir)) != NULL) {
-          if (is_a_file(ent->d_name) == true) {
-              strcpy(fullpath, userid);
-              strcat(fullpath, "/");
-              strcat(fullpath, ent->d_name);
-              file_list_add(file_list, fullpath);
-          }
-      }
-  }
-  closedir(dir);
-  return file_list;
-}
 
 /*
   Send the server file list from synch_server to synch_listen
 */
-void send_server_file_list(struct list_head *file_list,int newsockfd, SSL *ssl){
+void send_file_list(struct list_head *file_list,int newsockfd, SSL *ssl){
   char *buffer;
   file_t *iterator;
   list_for_each_entry(iterator, file_list, file_list) {
@@ -303,9 +255,19 @@ void send_server_file_list(struct list_head *file_list,int newsockfd, SSL *ssl){
       free(buffer);
   }
   send_data(FILE_SEND_OVER, newsockfd,
-            strlen(CREATE_SYNCH_THREAD) * sizeof(char), ssl);
+            strlen(FILE_SEND_OVER) * sizeof(char), ssl);
 }
 
+
+void synch_replica_info(struct thread_info *ti){
+  rm_t *iterator;
+  struct list_head * rm_list = ti->rm_list;
+  list_for_each_entry(iterator, rm_list  , rm_list ){
+    //send_data(ti->userid,iterator->newsockfd,strlen(ti->userid));
+    //update_file_list(synch_replica_info);
+  //  printf("dsadsa\n" );
+  }
+}
 
 
 /* From Assignment Specification
@@ -318,14 +280,16 @@ void *synch_server(void *thread_info) {
    char fullpath[255];
    ti->working_directory = ti->userid;
 
-   struct list_head *file_list = create_server_file_list(ti->userid);
+//   struct list_head *file_list = create_server_file_list(ti->userid);
+//   dbsem_wait(ti->sem);
+   synch_replica_info(ti);
+//   dbsem_post(ti->sem);
 
-    send_server_file_list(file_list,ti->newsockfd, ti->ssl);
-
+   send_file_list(ti->file_list,ti->newsockfd, ti->ssl);
     while (true) {
 
-      listen_changes(ti, file_list,ti->userid, fullpath);
-      check_changes(ti,file_list,fullpath);
+      listen_changes(ti, ti->file_list,ti->userid, fullpath);
+      check_changes(ti,ti->file_list,fullpath);
       sleep(5);
     }
     return NULL;

@@ -57,7 +57,7 @@ void get_all_files(char *sync_dir_path) {
     strcpy(fullpath, sync_dir_path);
     strcat(fullpath, "/");
     strcat(fullpath, filename->data);
-    receive_file_and_save_to_path(synch_socket, fullpath, ssl); /* code */
+    receive_file_and_save_to_path(client_socket, fullpath, ssl); /* code */
   }
 }
 
@@ -68,8 +68,6 @@ void start_sync_service(char *host, int port) {
   char *sync_dir_path = get_sync_dir(userid);
   pthread_t th;
 
-  synch_socket = connect_server(host, port,ssl);
-
   DIR *sync_dir = opendir(sync_dir_path);
   if (errno == ENOENT) {
     mkdir(sync_dir_path, 0777);
@@ -78,18 +76,21 @@ void start_sync_service(char *host, int port) {
   }
   closedir(sync_dir);
 
+  SSL *new_ssl = startCliSSL();
+  synch_socket = connect_server(host, port,new_ssl);
 //   tell the server to create a thread to synchronize with this one
   send_data(CREATE_SYNCH_THREAD, synch_socket,
-            strlen(CREATE_SYNCH_THREAD) * sizeof(char), ssl);
+            strlen(CREATE_SYNCH_THREAD) * sizeof(char), new_ssl);
   // send the userid for the new server thread
-  send_data(userid, synch_socket, strlen(userid) * sizeof(char), ssl);
+  printf("Sending userid %s to synch\n",userid );
+  send_data(userid, synch_socket, strlen(userid) * sizeof(char), new_ssl);
 
   struct thread_info *ti = malloc(sizeof(struct thread_info));
   strcpy(ti->userid, userid);
   ti->working_directory = sync_dir_path;
   ti->newsockfd = synch_socket;
   ti->isServer = false;
-  ti->ssl = ssl;
+  ti->ssl = new_ssl;
   pthread_create(&th, NULL, synch_listen, ti);
 }
 

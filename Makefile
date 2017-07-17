@@ -24,6 +24,8 @@ dropboxClient:
 
 dropboxServer:
 	$(CC) -g -o dropboxServer $(SRC_DIR)dropboxServer.c $(SRC_DIR)dropboxUtil.c $(SRC_DIR)dropboxSharedSocket.c $(SRC_DIR)dropboxServerCommandHandler.c $(SRC_DIR)dropboxSynch.c $(SRC_DIR)dropboxReplicaManager.c -Iinclude -lpthread -lssl -lcrypto -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -Wall
+
+
 #	mv ./dropboxServer.o $(BIN_DIR)
 #dropboxClient.o:
 #	$(CC) -g -c $(SRC_DIR)dropboxClient.c -Iinclude -Wall

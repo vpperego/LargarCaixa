@@ -20,13 +20,13 @@ struct rm_info {
   SSL *ssl;
   char address[256];
   int port;
-  struct list_head rm_list;
+  struct list_head  rm_list;
 };
 
 typedef struct rm_info rm_t;
 
 
 
-void main_replica_manager();
+void main_replica_manager(int port,int rm_id);
 
 #endif

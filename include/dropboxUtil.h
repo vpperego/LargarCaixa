@@ -17,7 +17,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define MAXFILES 4
+#define MAXFILES 20
 #define SHARED_MEMORY_SIZE 1024
 #define MAXNAME 256
 #define DELETE_FILE "DELETE_FILE"
@@ -55,6 +55,7 @@ struct thread_info {
   SSL * ssl;
   dbsem_t *sem;
   struct list_head *rm_list;
+  struct list_head *file_list;
 };
 
 

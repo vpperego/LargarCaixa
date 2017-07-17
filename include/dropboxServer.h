@@ -36,7 +36,7 @@ typedef struct client {
   struct list_head client_list;
   int devices[MAX_SESSIONS];
   char userid[MAXNAME];
-  struct file_info files[MAXFILES];
+  struct list_head *file_list;
   int logged_in;
   dbsem_t *sem;
   struct list_head *rm_list;

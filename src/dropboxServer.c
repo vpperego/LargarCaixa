@@ -20,23 +20,6 @@ void receive_file(char *file) {}
  */
 void send_file(char *file) {}
 
-dbsem_t *get_client_sem(char *userid){
-  client_t * iterator;
-  list_for_each_entry(iterator, &client_list,client_list)
-    if(!strcmp(userid,iterator->userid))
-      return iterator->sem;
-
-  return NULL;
-}
-
-struct list_head * get_client_rm(char *userid){
-  client_t * iterator;
-  list_for_each_entry(iterator, &client_list,client_list)
-    if(!strcmp(userid,iterator->userid))
-      return iterator->rm_list;
-  return NULL;
-}
-
 
 void send_all_files(char *userid, int sockfd) {
   DIR *dir;
@@ -61,20 +44,23 @@ void send_all_files(char *userid, int sockfd) {
     printf("ERRO EM OPENDIR\n");
 }
 
-//@TODO get actual file info and refactor eveything to use this list
+/*@TODO get actual file info and refactor eveything to use this list
 bool add_to_files_list(client_t *client) {
   int i;
   dbsem_wait(&file_list_access_mux);
+
+
   for (i = 0; i < MAXFILES; i++) {
     if (client->files[i].size == 0) { // file is empty
       client->files[i].size = 1;      // temp
       break;
     }
   }
+
   dbsem_post(&file_list_access_mux);
   return i != MAXFILES;
 }
-
+*/
 void *client_thread(void *thread_info) {
 
   printf("Starting client_thread\n" );
@@ -106,8 +92,7 @@ void *client_thread(void *thread_info) {
 
   send_data(CONNECTION_OK, ti->newsockfd, sizeof(CONNECTION_OK), ssl);
   while (true) {
-    // read command from client
-//    printf("ESPERANDO COMANDO\n");
+
     command = read_data(((struct thread_info *)thread_info)->newsockfd, ssl);
 //    printf("RECEBEU COMANDO\n");
 
@@ -118,7 +103,7 @@ void *client_thread(void *thread_info) {
                      ((struct thread_info *)thread_info)->newsockfd);
     }
     if (strcmp(command->data, "upload") == 0) {
-      if (add_to_files_list(client))
+  //    if (add_to_files_list(client))
         command_upload(((struct thread_info *)thread_info)->newsockfd, client, ssl);
     } else if (strcmp(command->data, "list") == 0) {
       command_list(((struct thread_info *)thread_info)->newsockfd, client, ssl);
@@ -139,13 +124,24 @@ void *client_thread(void *thread_info) {
 void * start_synch (void *thread_info){
   struct thread_info *ti = (struct thread_info *)thread_info;
 
-  char *userid;
+  char *user;
+     user = read_user_name(ti->newsockfd, ti->ssl);
+   strcpy(ti->userid,user);
 
-  userid = read_user_name(ti->newsockfd, ti->ssl);
-  strcpy(ti->userid,userid);
-  ti->sem = get_client_sem(ti->userid);
-  ti->rm_list = get_client_rm(ti->userid);
+  client_t * client ;
 
+  dbsem_wait(&list_access_mux);
+  if ((client = client_list_search(ti->userid)) == NULL) {
+    printf("%s não encontrado!\n", ti->userid);
+
+    exit(0);
+  }
+  dbsem_post(&list_access_mux);
+
+  ti->sem = client->sem ;
+  ti->rm_list = client->rm_list ;
+  ti->file_list = client->file_list ;
+  printf("Creating synch_server\n");
   synch_server(ti);
   return NULL;
 }
@@ -188,6 +184,7 @@ void server_listen(int server_socket) {
     if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
     {
       thread_info->isServer = true;
+
       pthread_create(&th, NULL, start_synch, thread_info);
 
     }
@@ -206,7 +203,7 @@ void start_replica_manager(){
   first = fork();
   if(first == 0)
   {
-    main_replica_manager(RM_PORT);
+    main_replica_manager(RM_PORT,2);
 
   }else{
     rm_t * new_rm = malloc(sizeof(rm_t));
@@ -219,7 +216,7 @@ void start_replica_manager(){
 
   second = fork();
   if(second==0){
-    main_replica_manager(RM_PORT+1);
+    main_replica_manager(RM_PORT+1,3);
   }else{
     rm_t * new_rm = malloc(sizeof(rm_t));
     new_rm->ssl = startCliSSL();
@@ -243,22 +240,52 @@ rm_t * start_client_rm_connection(rm_t * rm){
   rm_t * new_rm = malloc(sizeof(rm_t));
   new_rm->ssl = startCliSSL();
   new_rm->newsockfd = connect_server(rm->address,rm->port, new_rm->ssl);
+
   return new_rm;
 }
 
- struct list_head * create_client_rm_list(){
+ struct list_head * create_client_rm_list(char *userid){
     rm_t *iterator;
     struct list_head *client_rm_list = malloc(sizeof(client_rm_list));
     INIT_LIST_HEAD(client_rm_list);
 
     list_for_each_entry(iterator,rm_list,rm_list){
       rm_t * new_rm  = start_client_rm_connection(iterator);
-        list_add(&new_rm->rm_list,client_rm_list);
+      send_data(userid,new_rm->newsockfd,strlen(userid),new_rm->ssl);  
+      list_add(&new_rm->rm_list,client_rm_list);
+
     }
     return client_rm_list;
 }
 
+/*
+  Creates the file_list of @userid
+*/
+struct list_head *  create_server_file_list(char * userid){
+  struct list_head *file_list = malloc(sizeof(file_list));
+  DIR *dir;
+  struct dirent *ent;
+    char fullpath[MAXNAME];
+  INIT_LIST_HEAD(file_list);
+//  struct buffer *sendFiles = read_data(ti->newsockfd);
+  if ((dir = opendir(userid)) != NULL) {
+      /* print all the files and directories within directory */
+      while ((ent = readdir(dir)) != NULL) {
+          if (is_a_file(ent->d_name) == true) {
+              strcpy(fullpath, userid);
+              strcat(fullpath, "/");
+              strcat(fullpath, ent->d_name);
+              file_list_add(file_list, fullpath);
+          }
+      }
+  }
+  closedir(dir);
+  return file_list;
+}
 
+/*
+  Sign client to dropbox: create the user id, file list and rm list
+*/
 client_t *client__list_signup(char *userid) {
   client_t *client = malloc(sizeof(client_t));
   strcpy(client->userid, userid);
@@ -266,12 +293,11 @@ client_t *client__list_signup(char *userid) {
   memset(client->devices, DEVICE_FREE, sizeof(client->devices));
   client->sem = malloc(sizeof(dbsem_t));
   dbsem_init(client->sem,1);
-  client->rm_list = create_client_rm_list();
+  client->rm_list = create_client_rm_list(client->userid);
+  client->file_list =create_server_file_list(userid);
   /*memset(client->files, 0, sizeof(client->files));*/
-  if (mkdir(client->userid, 0777) < 0) {
-    // perror("ERROR MKDIR: ");
-    // return NULL;
-  }
+  mkdir(client->userid, 0777);
+
   list_add(&client->client_list, &client_list);
   return client;
 }
@@ -314,7 +340,8 @@ bool client_close_session(client_t *client, int device_id) {
 int main(int argc, char *argv[]) {
   int server_socket = start_server(SERVER_PORT);
   client_list_init();
-  start_replica_manager();
+  if(argc<2)
+    start_replica_manager();
   server_listen(server_socket);
   return 0;
 }
