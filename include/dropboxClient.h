@@ -21,7 +21,6 @@
 #include <openssl/err.h>
 
 #define CLIENT_ARGUMENTS 4
-#define MAXFILES 256
 #define ARGUMENTS "Client IP Port"
 
 extern char userid[MAXNAME];

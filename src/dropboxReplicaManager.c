@@ -6,7 +6,7 @@ struct thread_info * create_rm_thread_info(int newsockfd, SSL * new_ssl);
 
 void * rm_synch_listener(void *thread_info);
 
-void main_replica_manager(){
+void main_replica_manager(int port){
 
   pthread_t th;
   SSL * listener_ssl;
@@ -14,7 +14,7 @@ void main_replica_manager(){
   int newsockfd;
   struct sockaddr_in cli_addr;
   socklen_t clilen;
-  int rm_socket = start_server(RM_PORT);
+  int rm_socket = start_server(port);
 
   clilen = sizeof(struct sockaddr_in);
 
@@ -37,7 +37,18 @@ void main_replica_manager(){
 }
 
 
+/*
+int updateReplicas(list_head * rm_list,char * command,char *userid,char *file){
+  rm_t *iterator;
+//  list_for_each_entry(iterator, file_list,
+  //                    file_list)
+  list_for_each_entry(iterator,rm_list,rm_list){
+    send_data(command,iterator->newsockfd,strlen(command));
+    send_data(userid, iterator->newsockfd,strlen(command));
+  }
 
+}
+*/
 struct thread_info * create_rm_thread_info(int newsockfd, SSL * new_ssl){
   struct buffer *listen_buffer;
   struct thread_info *thread_info = malloc(sizeof(struct thread_info));
@@ -63,7 +74,7 @@ SSL * ssl_service(int newsockfd){
 
 void * rm_synch_listener(void *thread_info){
   struct thread_info *ti = (struct thread_info *)thread_info;
-  printf("Iniciando thread de %s\n",ti->userid );
+//  printf("Iniciando thread de %s\n",ti->userid );
 
   return NULL;
 }

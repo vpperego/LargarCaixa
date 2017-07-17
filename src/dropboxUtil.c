@@ -60,12 +60,12 @@ char **split_args(char *command) {
 void file_list_remove(struct list_head *file_list, char *filename) {
   file_t *iterator;
   list_for_each_entry(iterator, file_list,
-                      file_list) if (strcmp(iterator->filename, filename) ==
-                                     0) {
-                                       printf("ACHOU????\n" );
-    list_del(&iterator->file_list);
-    return;
-  }
+                      file_list)
+    if (strcmp(iterator->filename, filename) ==0) {
+
+      list_del(&iterator->file_list);
+      return;
+    }
 }
 
 /*

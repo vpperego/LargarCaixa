@@ -315,21 +315,10 @@ void send_server_file_list(struct list_head *file_list,int newsockfd, SSL *ssl){
 void *synch_server(void *thread_info) {
     struct thread_info *ti = (struct thread_info *)thread_info;
 
-   char *userid;
    char fullpath[255];
+   ti->working_directory = ti->userid;
 
-   userid = read_user_name(ti->newsockfd, ti->ssl);
-   strcpy(ti->userid,userid);
-
-   SSL * rm_ssl = startCliSSL();
-
-   int rm_socket = connect_server("localhost", RM_PORT, rm_ssl);
-
-   send_data(userid,rm_socket,strlen(userid),rm_ssl);
-
-    ti->working_directory = ti->userid;
-
-    struct list_head *file_list = create_server_file_list(userid);
+   struct list_head *file_list = create_server_file_list(ti->userid);
 
     send_server_file_list(file_list,ti->newsockfd, ti->ssl);
 

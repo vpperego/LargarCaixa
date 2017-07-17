@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-#define MAXFILES 4
+
 #define SERVER_PORT 55000
 #define MAX_SESSIONS 2
 #define DEVICE_FREE -1
@@ -38,6 +38,8 @@ typedef struct client {
   char userid[MAXNAME];
   struct file_info files[MAXFILES];
   int logged_in;
+  dbsem_t *sem;
+  struct list_head *rm_list;
 } client_t;
 
 
@@ -58,5 +60,6 @@ client_t *client_list_search(char *userid);
 bool client_open_session(client_t *client, int device_id);
 bool client_close_session(client_t *client, int device_id);
 bool add_to_files_list(client_t* client);
-
+dbsem_t *get_client_sem(char *userid);
+struct list_head * get_client_rm(char *userid);
 #endif

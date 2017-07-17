@@ -2,6 +2,7 @@
 #define __dropboxUtil__
 
 #include "dropboxList.h"
+#include "dropboxSemaphore.h"
 #include <libgen.h>
 #include <netinet/in.h>
 #include <pwd.h>
@@ -16,6 +17,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#define MAXFILES 4
 #define SHARED_MEMORY_SIZE 1024
 #define MAXNAME 256
 #define DELETE_FILE "DELETE_FILE"
@@ -51,7 +53,10 @@ struct thread_info {
   char *working_directory;
   bool isServer;
   SSL * ssl;
+  dbsem_t *sem;
+  struct list_head *rm_list;
 };
+
 
 char *read_line(void);
 char **split_args(char *command);
