@@ -10,13 +10,38 @@
   printf("print_file_list END\n" );
 }
 
+time_t getTimeServer(int synch_socket, SSL * ssl){
+    send_data(GET_TIME, synch_socket,
+              strlen(GET_TIME) * sizeof(char) + 1,ssl);
+
+    time_t now = time(0);
+    char time_buffer[MAXNAME];
+    sprintf(time_buffer, "%lld", (long long)now);
+    send_data(time_buffer, strlen(time_buffer) * sizeof(char)+1, synch_socket, ssl);
+
+    struct buffer *response;
+    response = read_data(synch_socket, ssl);
+    time_t after_response = time(0);
+
+    char *next;
+    time_t server_time = (long long) strtol(response->data, &next, 10);
+    time_t client_time = server_time+((after_response - now)/2);
+    /*printf("final %lld\n", client_time);*/
+    return client_time;
+
+
+}
+
 bool updated_existing_file(char *fullpath, struct dirent *ent, int synch_socket,
-                           struct list_head *file_list) {
+                           struct list_head *file_list, SSL * ssl) {
     file_t *current_file;
     struct stat file_stat;
     if ((current_file = file_list_search(file_list, ent->d_name)) != NULL) {
         stat(fullpath, &file_stat);
-        if (difftime(file_stat.st_mtime, current_file->last_modified) > 0) {
+        time_t new_client_time = getTimeServer(synch_socket, ssl);
+        long long diff1 = file_stat.st_mtime - time(0);
+        long long diff2 = current_file->last_modified - (new_client_time * 100);
+        if (diff1 > diff2) {
 
             current_file->last_modified = file_stat.st_mtime;
 
@@ -85,7 +110,12 @@ void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char *
       remove(fullpath);
       receive_file_and_save_to_path(ti->newsockfd, fullpath, ti->ssl);
       file_list_add(file_list,fullpath);
-    }else if (strcmp(DELETE_FILE, request->data) == 0) {
+    } else if (strcmp(GET_TIME, request->data)==0){
+      time_t now = time(0);
+      char time_buffer[MAXNAME];
+      sprintf(time_buffer, "%lld", (long long)now);
+      send_data(time_buffer, strlen(time_buffer) * sizeof(char)+1, ti->newsockfd, ti->ssl);
+    } else if (strcmp(DELETE_FILE, request->data) == 0) {
       // printf("DELETE FILE %s\n", filename->data );
         file_list_remove(file_list, filename->data);
         remove(fullpath); // delete the file
@@ -134,7 +164,7 @@ void check_changes(struct thread_info *ti, struct list_head *file_list,char *ful
         strcpy(fullpath, ti->working_directory);
         strcat(fullpath, ent->d_name);
       }
-      updated = updated_existing_file(fullpath, ent, ti->newsockfd, file_list);
+      updated = updated_existing_file(fullpath, ent, ti->newsockfd, file_list, ti->ssl);
       if(updated ==true){
         send_data(UPDATE_FILE, ti->newsockfd,
                   strlen(UPDATE_FILE) * sizeof(char) + 1,ti->ssl);

@@ -112,7 +112,6 @@ void *client_thread(void *thread_info) {
     } else if (strcmp(command->data, "exit") == 0) {
       command_exit(((struct thread_info *)thread_info)->newsockfd, client);
     }
-    // free(command);//is this right?
   }
   return NULL;
 }
