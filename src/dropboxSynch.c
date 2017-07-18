@@ -120,11 +120,11 @@ void listen_changes(struct thread_info *ti, struct list_head *file_list,
       receive_file_and_save_to_path(ti->newsockfd, fullpath, ti->ssl);
       file_list_add(file_list, fullpath);
     }
-    if (ti->isServer == true) {
+    if (ti->isServer == true && strcmp(GET_TIME, request->data)) {
 
       dbsem_wait(ti->sem);
 
-      updateReplicas(ti->rm_list, request->data, fullpath, filename->data);
+        updateReplicas(ti->rm_list, request->data, fullpath, filename->data);
       dbsem_post(ti->sem);
     }
     free(request->data);
