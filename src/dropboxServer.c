@@ -100,6 +100,7 @@ void *client_thread(void *thread_info) {
 
     //@TODO refactor
     if (strcmp(command->data, GET_ALL_FILES) == 0) {
+      printf("SEND ALL FILES....\n" );
       send_all_files(client->userid,
                      ((struct thread_info *)thread_info)->newsockfd);
     }

@@ -85,8 +85,9 @@ void listen_changes(struct thread_info *ti, struct list_head *file_list,
     }
     filename = read_data(ti->newsockfd, ti->ssl);
     filename->data = check_valid_string(filename);
-    // printf("REQUEST: %s\n", request->data);
-    // printf("FILENAME: %s\n", request->data);
+
+     printf("REQUEST: %s\n", request->data);
+     printf("FILENAME: %s\n", request->data);
 
     if (ti->isServer == false) {
       strcpy(fullpath, ti->working_directory);
@@ -99,7 +100,7 @@ void listen_changes(struct thread_info *ti, struct list_head *file_list,
       send_file_from_path(ti->newsockfd, fullpath, ti->ssl);
       file_list_add(file_list, fullpath);
     } else if (strcmp(UPDATE_FILE, request->data) == 0) {
-      // printf("UPDATE_FILE %s\n",filename->data );
+       printf("UPDATE_FILE %s\n",filename->data );
 
       file_list_remove(file_list, filename->data);
       remove(fullpath);

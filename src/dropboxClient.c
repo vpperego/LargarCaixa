@@ -54,6 +54,7 @@ void get_all_files(char *sync_dir_path) {
     filename = read_data(client_socket, ssl);
     if (strcmp(FILE_SEND_OVER, filename->data) == 0)
       break;
+    filename->data = check_valid_string(filename);
     strcpy(fullpath, sync_dir_path);
     strcat(fullpath, "/");
     strcat(fullpath, filename->data);
