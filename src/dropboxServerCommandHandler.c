@@ -6,7 +6,7 @@ void command_exit(int client_socket, struct client *client) {
   pthread_exit(NULL);
 }
 
-void command_download(int client_socket, struct client *client, SSL * ssl) {
+void command_download(int client_socket, struct client *client, SSL *ssl) {
   printf("Server recebeu comando DOWNLOAD\n");
 
   struct buffer *filename = read_data(client_socket, ssl);
@@ -22,7 +22,7 @@ void command_download(int client_socket, struct client *client, SSL * ssl) {
   send_file_from_path(client_socket, file_path, ssl);
 }
 
-void command_upload(int client_socket, struct client *client, SSL * ssl) {
+void command_upload(int client_socket, struct client *client, SSL *ssl) {
   printf("Server recebeu comando UPLOAD\n");
   struct buffer *filename = read_data(client_socket, ssl);
   printf("Filename: %s\n", filename->data);
@@ -37,7 +37,7 @@ void command_upload(int client_socket, struct client *client, SSL * ssl) {
   receive_file_and_save_to_path(client_socket, file_path, ssl);
 }
 
-void command_list(int client_socket, struct client *client, SSL * ssl) {
+void command_list(int client_socket, struct client *client, SSL *ssl) {
   printf("Server recebeu comando LIST\n");
   DIR *dir;
   struct dirent *entry;

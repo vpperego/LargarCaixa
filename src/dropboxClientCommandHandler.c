@@ -2,11 +2,11 @@
 
 char *console_str[] = {"upload", "download", "list", "get_sync_dir", "exit"};
 
-bool (*console_func[])(char **, SSL*) = {&command_upload, &command_download,
-                                   &command_list, &command_get_sync_dir,
-                                   &command_exit};
+bool (*console_func[])(char **, SSL *) = {&command_upload, &command_download,
+                                          &command_list, &command_get_sync_dir,
+                                          &command_exit};
 
-bool execute_command(char **args, SSL* ssl) {
+bool execute_command(char **args, SSL *ssl) {
   if (args[0] == NULL) {
     return false; // no args, continue loop
   }
@@ -20,7 +20,7 @@ bool execute_command(char **args, SSL* ssl) {
   return false;
 }
 
-bool command_upload(char **args, SSL* ssl) {
+bool command_upload(char **args, SSL *ssl) {
   if (args[1] == NULL) {
     fprintf(stderr, "usage: upload <path/filename.ext>\n");
     return false;
@@ -29,7 +29,7 @@ bool command_upload(char **args, SSL* ssl) {
   return false;
 }
 
-bool command_download(char **args, SSL* ssl) {
+bool command_download(char **args, SSL *ssl) {
   if (args[1] == NULL) {
     fprintf(stderr, "usage: download <filename.ext> \n");
   }
@@ -37,7 +37,7 @@ bool command_download(char **args, SSL* ssl) {
   return false;
 }
 
-bool command_list(char **args, SSL* ssl) {
+bool command_list(char **args, SSL *ssl) {
   char *command = "list";
   struct buffer *file_name_buffer = NULL;
   send_data(command, client_socket, (strlen(command) * sizeof(char)), ssl);
@@ -49,7 +49,7 @@ bool command_list(char **args, SSL* ssl) {
   return false;
 }
 
-bool command_get_sync_dir(char **args, SSL* ssl) {
+bool command_get_sync_dir(char **args, SSL *ssl) {
   struct passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
   char sync_dir_path[256];
@@ -62,7 +62,7 @@ bool command_get_sync_dir(char **args, SSL* ssl) {
   return false;
 }
 
-bool command_exit(char **args, SSL* ssl) {
+bool command_exit(char **args, SSL *ssl) {
   close_connection();
   return true;
 }

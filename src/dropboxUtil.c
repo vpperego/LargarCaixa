@@ -18,19 +18,19 @@ char *read_line(void) {
   return buffer;
 }
 
-char *read_user_name(int newsockfd, SSL * ssl) {
-   struct buffer *buffer = read_data(newsockfd, ssl);
+char *read_user_name(int newsockfd, SSL *ssl) {
+  struct buffer *buffer = read_data(newsockfd, ssl);
 
-/*
-  This is a solution for a "byzantine fault" (a.k.a. I can't solve it) in read_data
-  where the user name  STRING read from the client comes with garbage
-*/
-  if(buffer->size < strlen(buffer->data))
-  {
+  /*
+    This is a solution for a "byzantine fault" (a.k.a. I can't solve it) in
+    read_data where the user name  STRING read from the client comes with
+    garbage
+  */
+  if (buffer->size < strlen(buffer->data)) {
     char *real_name = malloc((sizeof(char) * buffer->size));
-    strncpy(real_name,buffer->data,buffer->size);
+    strncpy(real_name, buffer->data, buffer->size);
     real_name[buffer->size] = '\0';
-    free (buffer);
+    free(buffer);
     return real_name;
   }
   return buffer->data;
@@ -60,40 +60,39 @@ char **split_args(char *command) {
 void file_list_remove(struct list_head *file_list, char *filename) {
   file_t *iterator;
   list_for_each_entry(iterator, file_list,
-                      file_list)
-    if (strcmp(iterator->filename, filename) ==0) {
+                      file_list) if (strcmp(iterator->filename, filename) ==
+                                     0) {
 
-      list_del(&iterator->file_list);
-      return;
-    }
+    list_del(&iterator->file_list);
+    return;
+  }
 }
 
 /*
   Searches the sync_dir to see if a file is missing (i.e., was deleted)
 */
 file_t *is_file_missing(char *working_directory, struct list_head *file_list) {
-//  char *sync_dir_path = get_sync_dir(userid);
+  //  char *sync_dir_path = get_sync_dir(userid);
   DIR *dir;
   struct dirent *ent;
   file_t *iterator;
   bool found;
   dir = opendir(working_directory);
-  if(dir==NULL)
-  {
-      printf("is_file_missing: can't open dir \n" );
-
+  if (dir == NULL) {
+    printf("is_file_missing: can't open dir \n");
   }
 
-//  printf("is_file_missing IN DIR  %s\n", working_directory);
+  //  printf("is_file_missing IN DIR  %s\n", working_directory);
 
   list_for_each_entry(iterator, file_list, file_list) {
     found = false;
-    //printf("SEARCHING: filename %s\n",iterator->filename );
+    // printf("SEARCHING: filename %s\n",iterator->filename );
     dir = opendir(working_directory);
 
     while ((ent = readdir(dir)) != NULL) {
-    //  printf("dir_ent %s filename %s\n",ent->d_name,iterator->filename );
-    //  printf("dir_ent(size): %d filename(size): %d\n",strlen(ent->d_name),strlen(iterator->filename) );
+      //  printf("dir_ent %s filename %s\n",ent->d_name,iterator->filename );
+      //  printf("dir_ent(size): %d filename(size):
+      //  %d\n",strlen(ent->d_name),strlen(iterator->filename) );
 
       if (strcmp(ent->d_name, iterator->filename) == 0) {
         found = true;
@@ -101,16 +100,14 @@ file_t *is_file_missing(char *working_directory, struct list_head *file_list) {
       }
     }
     if (found == false) {
-  //    printf("MISSING %s tam.\n", iterator->filename);
+      //    printf("MISSING %s tam.\n", iterator->filename);
       closedir(dir);
       return iterator;
     }
     closedir(dir);
-
   }
   return NULL;
 }
-
 
 file_t *file_list_search(struct list_head *file_list, char *filename) {
   file_t *iterator;

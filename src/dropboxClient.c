@@ -3,8 +3,7 @@
 
 char userid[MAXNAME];
 int client_socket, synch_socket;
-SSL * ssl;
-
+SSL *ssl;
 
 /* From Assignment Specification
  * Synchronizes the directory named "sync_dir_<username>" with the server.
@@ -49,7 +48,8 @@ void get_all_files(char *sync_dir_path) {
   char fullpath[256];
   struct buffer *filename;
 
-  send_data(GET_ALL_FILES, client_socket, strlen(GET_ALL_FILES) * sizeof(char), ssl);
+  send_data(GET_ALL_FILES, client_socket, strlen(GET_ALL_FILES) * sizeof(char),
+            ssl);
   while (true) {
     filename = read_data(client_socket, ssl);
     if (strcmp(FILE_SEND_OVER, filename->data) == 0)
@@ -77,12 +77,12 @@ void start_sync_service(char *host, int port) {
   closedir(sync_dir);
 
   SSL *new_ssl = startCliSSL();
-  synch_socket = connect_server(host, port,new_ssl);
-//   tell the server to create a thread to synchronize with this one
+  synch_socket = connect_server(host, port, new_ssl);
+  //   tell the server to create a thread to synchronize with this one
   send_data(CREATE_SYNCH_THREAD, synch_socket,
             strlen(CREATE_SYNCH_THREAD) * sizeof(char), new_ssl);
   // send the userid for the new server thread
-  printf("Sending userid %s to synch\n",userid );
+  printf("Sending userid %s to synch\n", userid);
   send_data(userid, synch_socket, strlen(userid) * sizeof(char), new_ssl);
 
   struct thread_info *ti = malloc(sizeof(struct thread_info));
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
   // save user name
   strcpy(userid, argv[1]);
   ssl = startCliSSL();
-  client_socket = connect_server(argv[2], atoi(argv[3]),ssl);
+  client_socket = connect_server(argv[2], atoi(argv[3]), ssl);
   // send userid to server
   send_data(userid, client_socket, strlen(userid) * sizeof(char), ssl);
   struct buffer *server_response;

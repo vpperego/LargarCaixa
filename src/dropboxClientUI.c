@@ -1,6 +1,6 @@
 #include "../include/dropboxClientUI.h"
 
-void start_client_interface(SSL * ssl) {
+void start_client_interface(SSL *ssl) {
   bool finished = false;
   char *command;
   char **args;
