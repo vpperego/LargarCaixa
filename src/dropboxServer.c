@@ -141,7 +141,7 @@ void * start_synch (void *thread_info){
   ti->sem = client->sem ;
   ti->rm_list = client->rm_list ;
   ti->file_list = client->file_list ;
-  printf("Creating synch_server\n");
+
   synch_server(ti);
   return NULL;
 }
@@ -184,7 +184,6 @@ void server_listen(int server_socket) {
     if (strcmp(userid, CREATE_SYNCH_THREAD) == 0)
     {
       thread_info->isServer = true;
-
       pthread_create(&th, NULL, start_synch, thread_info);
 
     }
@@ -240,7 +239,6 @@ rm_t * start_client_rm_connection(rm_t * rm){
   rm_t * new_rm = malloc(sizeof(rm_t));
   new_rm->ssl = startCliSSL();
   new_rm->newsockfd = connect_server(rm->address,rm->port, new_rm->ssl);
-
   return new_rm;
 }
 
@@ -251,7 +249,8 @@ rm_t * start_client_rm_connection(rm_t * rm){
 
     list_for_each_entry(iterator,rm_list,rm_list){
       rm_t * new_rm  = start_client_rm_connection(iterator);
-      send_data(userid,new_rm->newsockfd,strlen(userid),new_rm->ssl);  
+      send_data(userid,new_rm->newsockfd,strlen(userid),new_rm->ssl);
+    //  printf("new_rm: addr:%s port: %d\n",new_rm->address,new_rm->port );
       list_add(&new_rm->rm_list,client_rm_list);
 
     }
@@ -294,7 +293,7 @@ client_t *client__list_signup(char *userid) {
   client->sem = malloc(sizeof(dbsem_t));
   dbsem_init(client->sem,1);
   client->rm_list = create_client_rm_list(client->userid);
-  client->file_list =create_server_file_list(userid);
+  client->file_list = create_server_file_list(userid);
   /*memset(client->files, 0, sizeof(client->files));*/
   mkdir(client->userid, 0777);
 

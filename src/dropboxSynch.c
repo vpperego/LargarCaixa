@@ -59,12 +59,14 @@ void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char *
 
       request->data = check_valid_string(request);
 
-  //  printf("REQUEST:%s\n", request->data);
      if (strcmp(CHECK_DONE, request->data) == 0) {
             break;
-       }
+      }
      filename = read_data(ti->newsockfd,ti->ssl);
      filename->data = check_valid_string(filename);
+    // printf("REQUEST: %s\n", request->data);
+    // printf("FILENAME: %s\n", request->data);
+
      if(ti->isServer==false)
      {
        strcpy(fullpath, ti->working_directory);
@@ -94,8 +96,16 @@ void listen_changes(struct thread_info *ti,  struct list_head *file_list ,char *
         receive_file_and_save_to_path(ti->newsockfd, fullpath, ti->ssl);
         file_list_add(file_list,fullpath);
     }
+    if(ti->isServer==true){
+
+      dbsem_wait(ti->sem);
+
+        updateReplicas(ti->rm_list,request->data,fullpath,filename->data);
+      dbsem_post(ti->sem);
+
+    }
     free(request->data);
-  }
+    }
 }
 
 bool is_new_file(char * file,struct list_head *file_list){
@@ -168,6 +178,7 @@ void get_file_list(int synch_socket, struct list_head *file_list, SSL *ssl) {
     file_t *current_file;
     while (true) {
         server_file = read_data(synch_socket, ssl);
+        server_file->data = check_valid_string(server_file);
 
         if (strcmp(FILE_SEND_OVER, server_file->data) == 0)
             break;
@@ -230,9 +241,10 @@ void *synch_listen(void *thread_info) {
 
     struct list_head *file_list = malloc(sizeof(file_list));
 
-       INIT_LIST_HEAD(file_list);
+      INIT_LIST_HEAD(file_list);
+
       get_file_list(ti->newsockfd, file_list, ti->ssl);
-      download_missing_files(ti, file_list);
+    //  download_missing_files(ti, file_list);
 
     do {
       check_changes(ti,file_list,fullpath);
@@ -263,9 +275,9 @@ void synch_replica_info(struct thread_info *ti){
   rm_t *iterator;
   struct list_head * rm_list = ti->rm_list;
   list_for_each_entry(iterator, rm_list  , rm_list ){
-    //send_data(ti->userid,iterator->newsockfd,strlen(ti->userid));
-    //update_file_list(synch_replica_info);
-  //  printf("dsadsa\n" );
+
+    send_file_list(ti->file_list, iterator->newsockfd,iterator->ssl);
+
   }
 }
 

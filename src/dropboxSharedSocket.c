@@ -52,8 +52,8 @@ SSL * startServerSSL() {
         ERR_print_errors_fp(stderr);
         abort();
   }
-  int use_cert = SSL_CTX_use_certificate_file(ctx,	"CertFile.pem",	SSL_FILETYPE_PEM);
-  int use_prv = SSL_CTX_use_PrivateKey_file(ctx,	"KeyFile.pem",	SSL_FILETYPE_PEM);
+  SSL_CTX_use_certificate_file(ctx,	"CertFile.pem",	SSL_FILETYPE_PEM);
+  SSL_CTX_use_PrivateKey_file(ctx,	"KeyFile.pem",	SSL_FILETYPE_PEM);
   new_ssl	=	SSL_new(ctx);
   return new_ssl;
 }

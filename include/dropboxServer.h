@@ -39,7 +39,7 @@ typedef struct client {
   struct list_head *file_list;
   int logged_in;
   dbsem_t *sem;
-  struct list_head *rm_list;
+  struct list_head  *rm_list;
 } client_t;
 
 

@@ -12,7 +12,10 @@
 #include <errno.h>
 
 #define RM_PORT 60000
-
+#define UPDATE_FAIL "UPDATE_FAIL"
+#define UPDATE_DONE "UPDATE_DONE"
+#define UPDATE_ERROR -1
+#define UPDATE_OK 1
 
 struct rm_info {
   pid_t pid;
@@ -28,5 +31,6 @@ typedef struct rm_info rm_t;
 
 
 void main_replica_manager(int port,int rm_id);
+int updateReplicas(struct list_head * rm_list,char * command,char *fullpath,char *filename);
 
 #endif
